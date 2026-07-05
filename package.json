@@ -1,0 +1,66 @@
+{
+  "name": "@cbortech/cbor-cli",
+  "version": "0.1.0",
+  "description": "Command-line tool to convert between CBOR binary data, CDN (Concise Diagnostic Notation) text, and annotated hex dumps",
+  "keywords": [
+    "cbor",
+    "cdn",
+    "cbor-edn",
+    "diagnostic-notation",
+    "cli",
+    "binary",
+    "serialization"
+  ],
+  "homepage": "https://cbor.tech/cbor/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cbortech/cbor-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cbortech/cbor-cli/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "Apache-2.0",
+  "author": "Yasuhiro Kudo <ykudo@ykudo.org>",
+  "type": "module",
+  "bin": {
+    "cbor": "dist/cbor.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "prepack": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "pretest": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@cbortech/cbor": "^0.26.0",
+    "@cbortech/hash-extension": "^0.2.3",
+    "@cbortech/set-map-extensions": "^0.1.0",
+    "@cbortech/uuid-extension": "^0.3.3",
+    "citty": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "esbuild": "^0.25.12",
+    "prettier": "^3.9.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.9"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.1": true
+  }
+}
