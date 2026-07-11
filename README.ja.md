@@ -63,7 +63,7 @@ cbor validate hello.cbor
 `0`、失敗時 `1` です。
 
 また、すべてのコマンドで `--extensions <list>` を指定して、有効にする
-application 拡張を選択できます([拡張の選択](#拡張の選択)を参照)。
+application extension を選択できます([拡張の選択](#拡張の選択)を参照)。
 
 ### `cbor compile [input]`
 
@@ -164,23 +164,23 @@ $ echo $?
 
 ## CDN 拡張
 
-以下の [application 拡張](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/)
+以下の [application extension](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/)
 が使用可能です:
 
-| 拡張                      | 説明                                                                       |
-| ------------------------- | -------------------------------------------------------------------------- |
-| `dt'…'` / `DT'…'`         | RFC 3339 の日時をプレーンな epoch 数値 / tag 1 として                      |
-| `ip'…'` / `IP'…'`         | IP アドレスをプレーンなバイト列 / tag 52 として                            |
-| `cri'…'` / `CRI'…'`       | URI 参照をプレーンな CRI 配列 / tag 99 として                              |
-| `t1<<…>>` / `b1<<…>>`     | 文字列/バイト列の引数を1つのテキスト/バイト列に連結する                    |
-| `ilts<<…>>` / `ilbs<<…>>` | 引数1つにつき1チャンクの不定長テキスト/バイト列を構築する                  |
-| `float'…'` / `float<<…>>` | IEEE 754 ビットパターン (float16/32/64)                                    |
-| `b32'…'` / `h32'…'`       | base32 / base32hex のバイト列 (RFC 4648) — cbor-cli が登録                 |
-| `same<<…>>`               | すべての item が同一の CBOR バイト列になることを検証する — cbor-cli が登録 |
-| `hash'…'`                 | 内容の暗号学的ハッシュ(デフォルト SHA-256) — cbor-cli が登録               |
-| `uuid'…'` / `UUID'…'`     | UUID のバイト列 / tag 37 — cbor-cli が登録                                 |
-| `SET<<[…]>>`              | CBOR tag 258 — 数学的な有限集合(Set) — cbor-cli が登録                     |
-| `MAP<<{…}>>`              | CBOR tag 259 — 明示的な `Map` 型(非テキストキーも使用可) — cbor-cli が登録 |
+| 拡張            | 説明                                                      |
+| --------------- | --------------------------------------------------------- |
+| `dt` / `DT`     | RFC 3339 の日時(プレーンな epoch 数値 / tag 1)            |
+| `ip` / `IP`     | IP アドレス(プレーンなバイト列 / tag 52)                  |
+| `cri` / `CRI`   | URI 参照(プレーンな CRI 配列 / tag 99)                    |
+| `t1` / `b1`     | 文字列/バイト列の引数を1つのテキスト/バイト列に連結する   |
+| `ilts` / `ilbs` | 引数1つにつき1チャンクの不定長テキスト/バイト列を構築する |
+| `float`         | IEEE 754 ビットパターン (float16/32/64)                   |
+| `hash`          | 内容の暗号学的ハッシュ(デフォルト SHA-256)                |
+| `b32` / `h32`   | base32 / base32hex のバイト列 (RFC 4648);文字列形式のみ   |
+| `same`          | すべての item が同一の CBOR バイト列になることを検証する  |
+| `uuid` / `UUID` | UUID(プレーンなバイト列 / tag 37)                         |
+| `SET`           | 数学的な有限集合(tag 258)                                 |
+| `MAP`           | 明示的な `Map` 型(tag 259;非テキストキーも使用可)         |
 
 ```bash
 # dt'…' / ip'…' はプレーンな値、DT'…' / IP'…' はタグ付きの値になる
@@ -251,10 +251,10 @@ CBOR タグを持つため、compile → decompile の完全なラウンドト�
 ### 拡張の選択
 
 すべてのコマンドで `--extensions <list>` を指定して、有効にする
-application 拡張を選択できます:
+application extension を選択できます:
 
 - `--extensions all`(デフォルト)— 上の表のすべての拡張。
-- `--extensions none` — application 拡張をすべて無効にする。
+- `--extensions none` — application extension をすべて無効にする。
 - `--extensions dt,t1,hash` — 指定した拡張のみ
   (表にある拡張名をカンマ区切りで指定)。
 
@@ -289,6 +289,13 @@ echo "UUID'019e226f-78d8-7892-8c91-79013e6905e2'" | cbor compile \
 エラーと警告は `cbor:` プレフィックス付きで stderr に出力されます。
 警告には違反が検出された位置(CBOR 入力ではバイトオフセット、CDN 入力では
 行/桁)が含まれます。
+
+`validate` はこの例外です。そのレポート(`<name>: ok (…)`、
+`<name>: warning: …`、`<name>: invalid`)はリンターの出力のように
+パイプや grep で扱えるよう stdout に出力されます。`invalid` の場合は、
+エラーメッセージ(パース/デコードエラーのほか、I/O エラーや不正な
+`--type` 値なども含む)が `cbor:` プレフィックス付きで追加で stderr にも
+出力されます。
 
 ## 仕様
 
