@@ -100,9 +100,9 @@ a command, separate it with `--` (e.g. `cbor -- compile`).
 | `--int-format <fmt>`           | `decimal` \| `hex` \| `octal` \| `binary` (default: `decimal`)                                     |
 | `--float-format <fmt>`         | `decimal` \| `hex` (default: `decimal`)                                                            |
 | `--encoding-indicators <mode>` | Emit `_N` indicators: `auto` \| `always` \| `never` (default: `auto`)                              |
-| `--split-cdn`                  | Split text strings that parse as CDN using structure-aware concatenation (needs `--indent`)        |
-| `--split-newline`              | Split text strings at newlines using CDN concatenation (needs `--indent`)                          |
-| `--preserve-concatenation`     | Re-emit `"a" + "b"` source concatenation instead of joining parts                                  |
+| `--no-split-cdn`               | Don't split text strings that parse as CDN (default: split when `--indent` is set)                 |
+| `--no-split-newline`           | Don't split text strings at newlines (default: split when `--indent` is set)                       |
+| `--no-preserve-concatenation`  | Join `"a" + "b"` source concatenation into one literal (default: keep it split)                    |
 | `--no-strict`                  | Report CBOR validity violations as warnings and continue                                           |
 
 ### `cbor format [input]`

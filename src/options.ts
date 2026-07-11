@@ -108,21 +108,24 @@ export const cdnRenderArgs = {
   },
   'split-cdn': {
     type: 'boolean',
-    default: false,
+    default: true,
     description:
       'Split text strings that parse as CDN using structure-aware concatenation (needs --indent)',
+    negativeDescription: 'Do not split text strings that parse as CDN',
   },
   'split-newline': {
     type: 'boolean',
-    default: false,
+    default: true,
     description:
       'Split text strings at newlines using CDN concatenation (needs --indent)',
+    negativeDescription: 'Do not split text strings at newlines',
   },
   'preserve-concatenation': {
     type: 'boolean',
-    default: false,
+    default: true,
     description:
       'Re-emit "a" + "b" source concatenation instead of joining parts',
+    negativeDescription: 'Join "a" + "b" source concatenation into one literal',
   },
 } as const;
 
