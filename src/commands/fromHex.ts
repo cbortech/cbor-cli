@@ -1,8 +1,8 @@
 import { defineCommand } from 'citty';
-import { cbor } from '../cbor.js';
+import { createCbor } from '../cbor.js';
 import { readTextInput, writeBinaryOutput } from '../io.js';
-import { pick } from '../options.js';
-import { fail, warningOpts } from '../report.js';
+import { pick, extensionsArg } from '../options.js';
+import { collectWarnings, fail } from '../report.js';
 
 const FORMAT = ['annotated', 'plain'] as const;
 
@@ -27,6 +27,7 @@ export default defineCommand({
       default: 'annotated',
       description: 'Input format: annotated | plain',
     },
+    ...extensionsArg,
     strict: {
       type: 'boolean',
       default: true,
@@ -51,7 +52,9 @@ export default defineCommand({
         }
         bytes = Buffer.from(hex, 'hex');
       } else {
-        bytes = cbor.fromHex(text, warningOpts(args.strict));
+        const warnings = collectWarnings(args.strict);
+        bytes = createCbor(args.extensions).fromHex(text, warnings.opts);
+        warnings.flush();
       }
 
       await writeBinaryOutput(args.output, bytes);

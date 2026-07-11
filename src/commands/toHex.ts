@@ -1,9 +1,9 @@
 import { defineCommand } from 'citty';
 import type { ToHexDumpOptions } from '@cbortech/cbor';
-import { cbor } from '../cbor.js';
+import { createCbor } from '../cbor.js';
 import { readBinaryInput, writeTextOutput } from '../io.js';
-import { pick, parseIndent } from '../options.js';
-import { fail, warningOpts } from '../report.js';
+import { pick, parseIndent, extensionsArg } from '../options.js';
+import { collectWarnings, fail } from '../report.js';
 
 const COMMENT_STYLE = ['--', '#'] as const;
 
@@ -40,6 +40,7 @@ export default defineCommand({
       default: '--',
       description: 'Comment style: -- | #',
     },
+    ...extensionsArg,
     strict: {
       type: 'boolean',
       default: true,
@@ -50,6 +51,7 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
+      const cbor = createCbor(args.extensions);
       const bytes = await readBinaryInput(args.input);
 
       let output: string;
@@ -63,7 +65,9 @@ export default defineCommand({
             '--'
           ),
         };
-        output = cbor.toHex(bytes, { ...warningOpts(args.strict), ...opts });
+        const warnings = collectWarnings(args.strict);
+        output = cbor.toHex(bytes, { ...warnings.opts, ...opts });
+        warnings.flush();
       } else {
         output = Buffer.from(bytes).toString('hex');
       }

@@ -22,20 +22,43 @@ export function printWarning(warning: DecodeWarning | ParseWarning): void {
 }
 
 /**
- * Warning-handling options for decode/parse calls.
+ * Warning handling for a single decode/parse operation.
  *
- * In strict mode violations throw, so the default `console.warn` would print
- * the same message twice — suppress it and let the thrown error speak.
- * In non-strict mode processing continues, so surface each violation on stderr.
+ * In non-strict mode processing continues, so `opts.onWarning` surfaces each
+ * violation on stderr immediately (and `flush()` is a no-op). In strict mode
+ * a violation warns and then throws with the same message, so printing right
+ * away would duplicate the error — instead the warnings are buffered in this
+ * collector, and `flush()` (call it after the operation succeeds) prints only
+ * the ones that did not become errors, e.g. a disabled app-extension prefix
+ * being wrapped in a CPA999 tag. On failure, skip `flush()` — the thrown
+ * error already tells the story.
+ *
+ * Each call returns an independent buffer, so warnings never leak between
+ * operations in the same process.
  */
-export function warningOpts(strict: boolean): {
-  strict: boolean;
-  silent?: boolean;
-  onWarning?: (warning: DecodeWarning | ParseWarning) => void;
+export function collectWarnings(strict: boolean): {
+  opts: {
+    strict: boolean;
+    onWarning: (warning: DecodeWarning | ParseWarning) => void;
+  };
+  flush: () => void;
 } {
-  return strict
-    ? { strict, silent: true }
-    : { strict, onWarning: printWarning };
+  if (!strict) {
+    return { opts: { strict, onWarning: printWarning }, flush: () => {} };
+  }
+  const pending: string[] = [];
+  return {
+    opts: {
+      strict,
+      onWarning: (warning) => pending.push(describeWarning(warning)),
+    },
+    flush: () => {
+      for (const msg of pending) {
+        process.stderr.write(`cbor: warning: ${msg}\n`);
+      }
+      pending.length = 0;
+    },
+  };
 }
 
 /** Report a fatal error on stderr and mark the process as failed. */

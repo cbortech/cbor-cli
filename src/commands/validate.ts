@@ -1,8 +1,13 @@
 import { defineCommand } from 'citty';
 import type { DecodeWarning, ParseWarning } from '@cbortech/cbor';
-import { cbor } from '../cbor.js';
+import { createCbor } from '../cbor.js';
 import { readBinaryInput, readTextInput } from '../io.js';
-import { pick } from '../options.js';
+import {
+  pick,
+  extensionsArg,
+  unresolvedArg,
+  unresolvedOption,
+} from '../options.js';
 import { describeWarning, fail } from '../report.js';
 
 const TYPES = ['cbor', 'cdn', 'hex'] as const;
@@ -25,10 +30,13 @@ export default defineCommand({
       default: 'cbor',
       description: 'Input type: cbor | cdn | hex',
     },
+    ...extensionsArg,
+    ...unresolvedArg,
   },
   async run({ args }) {
     const name = args.input && args.input !== '-' ? args.input : 'stdin';
     try {
+      const cbor = createCbor(args.extensions);
       const type = pick(args.type, TYPES, 'type', 'cbor');
       const warnings: string[] = [];
       const opts = {
@@ -43,7 +51,11 @@ export default defineCommand({
         for (const _ of cbor.fromCBORSeq(bytes, opts)) count++;
       } else if (type === 'cdn') {
         const text = await readTextInput(args.input);
-        for (const _ of cbor.fromCDNSeq(text, opts)) count++;
+        const cdnOpts = {
+          ...opts,
+          unresolvedExtension: unresolvedOption(args.unresolved),
+        };
+        for (const _ of cbor.fromCDNSeq(text, cdnOpts)) count++;
       } else {
         const text = await readTextInput(args.input);
         for (const _ of cbor.fromHexDumpSeq(text, opts)) count++;

@@ -46,18 +46,18 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@cbortech/cbor": "^0.26.0",
+    "@cbortech/cbor": "^0.26.2",
     "@cbortech/hash-extension": "^0.2.3",
     "@cbortech/set-map-extensions": "^0.1.0",
     "@cbortech/uuid-extension": "^0.3.3",
     "citty": "^0.2.2"
   },
   "devDependencies": {
-    "@types/node": "^24.13.2",
+    "@types/node": "^24.13.3",
     "esbuild": "^0.25.12",
     "prettier": "^3.9.4",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "esbuild@0.25.12": true,
