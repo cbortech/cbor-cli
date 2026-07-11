@@ -1,4 +1,5 @@
 import type { ToCDNOptions } from '@cbortech/cbor';
+import { EXTENSION_NAMES } from './cbor.js';
 
 export function pick<T extends string>(
   value: string | undefined,
@@ -35,6 +36,37 @@ const SQSTR = ['printable-string', 'string', 'none'] as const;
 const INT_FORMAT = ['decimal', 'hex', 'octal', 'binary'] as const;
 const FLOAT_FORMAT = ['decimal', 'hex'] as const;
 const ENC_INDICATORS = ['auto', 'always', 'never'] as const;
+
+/** citty arg definition for `--extensions`, shared by every command. */
+export const extensionsArg = {
+  extensions: {
+    type: 'string',
+    default: 'all',
+    description: `Enabled application extensions: all | none | comma-separated names (${EXTENSION_NAMES.join(', ')})`,
+  },
+} as const;
+
+const UNRESOLVED = ['cpa999', 'error'] as const;
+
+/**
+ * citty arg definition for `--unresolved`, shared by commands that parse CDN
+ * (where unknown / disabled app-extension prefixes can appear).
+ */
+export const unresolvedArg = {
+  unresolved: {
+    type: 'string',
+    default: 'cpa999',
+    description:
+      'Unknown app-extension prefixes: cpa999 (wrap in CPA999 tag) | error',
+  },
+} as const;
+
+/** Parse the `--unresolved` value into `FromCDNOptions.unresolvedExtension`. */
+export function unresolvedOption(
+  value: string | undefined
+): 'cpa999' | 'error' {
+  return pick(value, UNRESOLVED, 'unresolved', 'cpa999');
+}
 
 /** citty arg definitions shared by commands that render CDN output. */
 export const cdnRenderArgs = {

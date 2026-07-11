@@ -446,6 +446,86 @@ describe('cbor validate', () => {
   });
 });
 
+describe('--extensions', () => {
+  // tag 37 over 16 bytes — decompiles to UUID'…' only when uuid is enabled
+  const UUID_TAGGED = Buffer.from(
+    'd82550019e226f78d878928c9179013e6905e2',
+    'hex'
+  );
+
+  test('default enables builtins and extras alike', async () => {
+    const r = await run(['compile'], "[dt'2024-01-01T00:00:00Z', hash'foo']");
+    expect(r.code).toBe(0);
+  });
+
+  test('none disables an extra extension (uuid tag renders generically)', async () => {
+    const on = await run(['decompile', '--indent', '0'], UUID_TAGGED);
+    expect(text(on).trim()).toBe("UUID'019e226f-78d8-7892-8c91-79013e6905e2'");
+    const off = await run(
+      ['decompile', '--indent', '0', '--extensions', 'none'],
+      UUID_TAGGED
+    );
+    expect(text(off).trim()).toBe("37(h'019e226f78d878928c9179013e6905e2')");
+  });
+
+  test('none wraps disabled prefixes in CPA999 with a warning', async () => {
+    const r = await run(
+      ['compile', '--extensions', 'none'],
+      "dt'2024-01-01T00:00:00Z'"
+    );
+    expect(r.code).toBe(0);
+    expect(r.stderr).toContain('warning');
+    const back = await run(['decompile', '--indent', '0'], r.stdout);
+    expect(text(back).trim()).toBe('999(["dt","2024-01-01T00:00:00Z"])');
+  });
+
+  test('a comma-separated allowlist enables exactly those extensions', async () => {
+    const dt = await run(
+      ['compile', '--extensions', 'dt,t1'],
+      "dt'2024-01-01T00:00:00Z'"
+    );
+    expect(hex(dt)).toBe('1a65920080');
+    const t1 = await run(['compile', '--extensions', 'dt,t1'], "t1<<'a','b'>>");
+    expect(hex(t1)).toBe('626162');
+    const hash = await run(
+      ['compile', '--extensions', 'dt,t1', '--unresolved', 'error'],
+      "hash'foo'"
+    );
+    expect(hash.code).toBe(1);
+  });
+
+  test('--unresolved error rejects disabled prefixes', async () => {
+    const r = await run(
+      ['compile', '--extensions', 'none', '--unresolved', 'error'],
+      "dt'2024-01-01T00:00:00Z'"
+    );
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain('dt');
+  });
+
+  test('validate reports disabled-extension usage as a warning', async () => {
+    const r = await run(
+      ['validate', '--type', 'cdn', '--extensions', 'none'],
+      "dt'2024-01-01T00:00:00Z'"
+    );
+    expect(r.code).toBe(1);
+    expect(text(r)).toContain('warning');
+  });
+
+  test('an unknown extension name fails with the available list', async () => {
+    const r = await run(['compile', '--extensions', 'bogus'], '1');
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain('bogus');
+    expect(r.stderr).toContain('uuid');
+  });
+
+  test('works with the implicit decompile command', async () => {
+    const r = await run(['--extensions', 'none', '--indent', '0'], UUID_TAGGED);
+    expect(r.code).toBe(0);
+    expect(text(r).trim()).toBe("37(h'019e226f78d878928c9179013e6905e2')");
+  });
+});
+
 describe('round-trips', () => {
   test('compile → decompile → compile is stable', async () => {
     const src = '{"name": "cbor", "versions": [1, 2, 3], "data": h\'0203\'}';

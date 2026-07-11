@@ -1,8 +1,8 @@
 import { defineCommand } from 'citty';
-import { cbor } from '../cbor.js';
+import { createCbor } from '../cbor.js';
 import { readBinaryInput, writeTextOutput } from '../io.js';
-import { cdnRenderArgs, cdnRenderOptions } from '../options.js';
-import { fail, warningOpts } from '../report.js';
+import { cdnRenderArgs, cdnRenderOptions, extensionsArg } from '../options.js';
+import { collectWarnings, fail } from '../report.js';
 
 /** Exported so the implicit-decompile argv scan can mirror these flags. */
 export const decompileArgs = {
@@ -17,6 +17,7 @@ export const decompileArgs = {
     description: 'Output CDN file (default: stdout)',
   },
   ...cdnRenderArgs,
+  ...extensionsArg,
   strict: {
     type: 'boolean',
     default: true,
@@ -34,11 +35,14 @@ export default defineCommand({
   args: decompileArgs,
   async run({ args }) {
     try {
+      const cbor = createCbor(args.extensions);
       const bytes = await readBinaryInput(args.input);
+      const warnings = collectWarnings(args.strict);
       const cdn = cbor.decompile(bytes, {
-        ...warningOpts(args.strict),
+        ...warnings.opts,
         ...cdnRenderOptions(args),
       });
+      warnings.flush();
       await writeTextOutput(args.output, cdn);
     } catch (err) {
       fail(err);

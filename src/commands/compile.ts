@@ -1,7 +1,8 @@
 import { defineCommand } from 'citty';
-import { cbor } from '../cbor.js';
+import { createCbor } from '../cbor.js';
 import { readTextInput, writeBinaryOutput } from '../io.js';
-import { fail, warningOpts } from '../report.js';
+import { extensionsArg, unresolvedArg, unresolvedOption } from '../options.js';
+import { collectWarnings, fail } from '../report.js';
 
 export default defineCommand({
   meta: {
@@ -19,6 +20,8 @@ export default defineCommand({
       alias: 'o',
       description: 'Output CBOR file (default: stdout)',
     },
+    ...extensionsArg,
+    ...unresolvedArg,
     strict: {
       type: 'boolean',
       default: true,
@@ -29,8 +32,14 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
+      const cbor = createCbor(args.extensions);
       const text = await readTextInput(args.input);
-      const bytes = cbor.compile(text, warningOpts(args.strict));
+      const warnings = collectWarnings(args.strict);
+      const bytes = cbor.compile(text, {
+        ...warnings.opts,
+        unresolvedExtension: unresolvedOption(args.unresolved),
+      });
+      warnings.flush();
       await writeBinaryOutput(args.output, bytes);
     } catch (err) {
       fail(err);

@@ -62,15 +62,20 @@ stdin when the argument is omitted or `-`. Output goes to stdout unless
 `-o <file>` is given. All commands exit with status `0` on success and `1`
 on failure.
 
+Every command also accepts `--extensions <list>` to select which
+application extensions are enabled — see
+[Selecting extensions](#selecting-extensions).
+
 ### `cbor compile [input]`
 
 Compile CDN text into CBOR binary data. A multi-item CDN sequence produces
 a CBOR Sequence (RFC 8742).
 
-| Option                | Description                                             |
-| --------------------- | ------------------------------------------------------- |
-| `-o, --output <file>` | Output CBOR file (default: stdout)                      |
-| `--no-strict`         | Report CDN validity violations as warnings and continue |
+| Option                | Description                                                           |
+| --------------------- | --------------------------------------------------------------------- |
+| `-o, --output <file>` | Output CBOR file (default: stdout)                                    |
+| `--unresolved <mode>` | Unknown / disabled app-extension prefixes: `cpa999` (wrap) \| `error` |
+| `--no-strict`         | Report CDN validity violations as warnings and continue               |
 
 As a safety measure, `compile` (and `fromHex`) refuse to write binary data
 directly to a terminal — write to a file with `-o` or pipe the output.
@@ -107,10 +112,11 @@ default.
 
 Accepts all of the rendering options of `decompile`, plus:
 
-| Option                   | Description                                             |
-| ------------------------ | ------------------------------------------------------- |
-| `--no-preserve-comments` | Strip comments from the output                          |
-| `--no-strict`            | Report CDN validity violations as warnings and continue |
+| Option                   | Description                                                           |
+| ------------------------ | --------------------------------------------------------------------- |
+| `--no-preserve-comments` | Strip comments from the output                                        |
+| `--unresolved <mode>`    | Unknown / disabled app-extension prefixes: `cpa999` (wrap) \| `error` |
+| `--no-strict`            | Report CDN validity violations as warnings and continue               |
 
 ### `cbor toHex [input]`
 
@@ -144,9 +150,10 @@ violations (e.g. duplicate map keys) are reported as warnings; truly
 malformed data is reported as an error. Exits `0` only when the input is
 clean.
 
-| Option              | Description                                            |
-| ------------------- | ------------------------------------------------------ |
-| `-t, --type <type>` | Input type: `cbor` \| `cdn` \| `hex` (default: `cbor`) |
+| Option                | Description                                                                       |
+| --------------------- | --------------------------------------------------------------------------------- |
+| `-t, --type <type>`   | Input type: `cbor` \| `cdn` \| `hex` (default: `cbor`)                            |
+| `--unresolved <mode>` | Unknown / disabled app-extension prefixes (CDN input): `cpa999` (wrap) \| `error` |
 
 ```bash
 $ printf '\xa2\x61\x61\x01\x61\x61\x02' | cbor validate
@@ -239,6 +246,37 @@ they round-trip as the plain values they encode to, since nothing marks
 them as coming from an app-string. The _tagged_ forms (`DT'…'`, `IP'…'`,
 `CRI'…'`) do carry a real CBOR tag and so keep their notation through a
 full compile → decompile round-trip.
+
+### Selecting extensions
+
+Every command accepts `--extensions <list>` to control which application
+extensions are enabled:
+
+- `--extensions all` (default) — everything in the table above.
+- `--extensions none` — no application extensions.
+- `--extensions dt,t1,hash` — exactly the named extensions
+  (comma-separated names from the table).
+
+When CDN input uses a prefix whose extension is disabled, the literal is
+wrapped in a CPA999 tag (`999(["dt", "…"])`) and a warning is printed.
+Pass `--unresolved error` (on `compile`, `format`, and `validate`) to
+reject such input instead — useful for allowlisting untrusted CDN. On the
+binary side, a disabled extension's tag simply decodes as a generic tag.
+
+```bash
+# allowlist: only dt/DT and t1/b1 are interpreted
+echo "dt'2024-01-01T00:00:00Z'" | cbor compile --extensions dt,t1 | cbor toHex
+# 1A 65 92 00 80  -- 1704067200
+
+# reject anything not on the allowlist
+echo "hash'foo'" | cbor compile --extensions dt,t1 --unresolved error
+# cbor: EDN parse error at line 1, column 1: unknown app-string extension: "hash"
+
+# a disabled extension's tag decodes generically
+echo "UUID'019e226f-78d8-7892-8c91-79013e6905e2'" | cbor compile \
+  | cbor decompile --extensions none --indent 0
+# 37(h'019e226f78d878928c9179013e6905e2')
+```
 
 ## Exit Codes and Diagnostics
 

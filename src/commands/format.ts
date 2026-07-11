@@ -1,8 +1,14 @@
 import { defineCommand } from 'citty';
-import { cbor } from '../cbor.js';
+import { createCbor } from '../cbor.js';
 import { readTextInput, writeTextOutput } from '../io.js';
-import { cdnRenderArgs, cdnRenderOptions } from '../options.js';
-import { fail, warningOpts } from '../report.js';
+import {
+  cdnRenderArgs,
+  cdnRenderOptions,
+  extensionsArg,
+  unresolvedArg,
+  unresolvedOption,
+} from '../options.js';
+import { collectWarnings, fail } from '../report.js';
 
 export default defineCommand({
   meta: {
@@ -27,6 +33,8 @@ export default defineCommand({
       negativeDescription: 'Strip comments from output',
     },
     ...cdnRenderArgs,
+    ...extensionsArg,
+    ...unresolvedArg,
     strict: {
       type: 'boolean',
       default: true,
@@ -37,16 +45,20 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
+      const cbor = createCbor(args.extensions);
       const text = await readTextInput(args.input);
       const preserveComments = args['preserve-comments'];
 
+      const warnings = collectWarnings(args.strict);
       const items = [
         ...cbor.fromCDNSeq(text, {
           preserveComments,
-          ...warningOpts(args.strict),
+          unresolvedExtension: unresolvedOption(args.unresolved),
+          ...warnings.opts,
         }),
       ];
 
+      warnings.flush();
       const toCDNOpts = { ...cdnRenderOptions(args), preserveComments };
       const formatted = items.map((item) => item.toCDN(toCDNOpts)).join('\n');
       await writeTextOutput(args.output, formatted);
