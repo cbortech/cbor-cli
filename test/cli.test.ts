@@ -425,6 +425,27 @@ describe('cbor validate', () => {
     expect(text(r)).toContain('invalid');
   });
 
+  test('report lines go to stdout; only the invalid case also writes to stderr', async () => {
+    const ok = await run(['validate'], MAP_A1);
+    expect(ok.stderr).toBe('');
+    const warn = await run(['validate'], DUP_KEY);
+    expect(warn.stderr).toBe('');
+    const invalid = await run(['validate'], Buffer.from('a261', 'hex'));
+    expect(invalid.stderr).toContain('cbor:');
+  });
+
+  test('any thrown error (not just parse/decode) reaches the invalid case', async () => {
+    const badType = await run(['validate', '--type', 'bogus'], '1');
+    expect(badType.code).toBe(1);
+    expect(text(badType)).toContain('invalid');
+    expect(badType.stderr).toContain('cbor:');
+
+    const badFile = await run(['validate', join(dir, 'does-not-exist')]);
+    expect(badFile.code).toBe(1);
+    expect(text(badFile)).toContain('invalid');
+    expect(badFile.stderr).toContain('cbor:');
+  });
+
   test('--type cdn validates CDN text', async () => {
     const r = await run(['validate', '--type', 'cdn'], '{"a": 1} true');
     expect(r.code).toBe(0);

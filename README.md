@@ -168,20 +168,20 @@ $ echo $?
 The following [application extensions](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/)
 are available:
 
-| Extension                 | Description                                                                             |
-| ------------------------- | --------------------------------------------------------------------------------------- |
-| `dt'…'` / `DT'…'`         | RFC 3339 date-time as a bare epoch number / as tag 1                                    |
-| `ip'…'` / `IP'…'`         | IP address as a bare byte string / as tag 52                                            |
-| `cri'…'` / `CRI'…'`       | URI reference as a bare CRI array / as tag 99                                           |
-| `t1<<…>>` / `b1<<…>>`     | concatenate string/byte-string arguments into one text/byte string                      |
-| `ilts<<…>>` / `ilbs<<…>>` | build an indefinite-length text/byte string, one chunk per argument                     |
-| `float'…'` / `float<<…>>` | IEEE 754 bit patterns (float16/32/64)                                                   |
-| `b32'…'` / `h32'…'`       | base32 / base32hex byte strings (RFC 4648) — registered by cbor-cli                     |
-| `same<<…>>`               | assert that all items encode to identical CBOR bytes — registered by cbor-cli           |
-| `hash'…'`                 | cryptographic hash of the content (SHA-256 by default) — registered by cbor-cli         |
-| `uuid'…'` / `UUID'…'`     | UUID as a byte string / as tag 37 — registered by cbor-cli                              |
-| `SET<<[…]>>`              | CBOR tag 258 — mathematical finite set — registered by cbor-cli                         |
-| `MAP<<{…}>>`              | CBOR tag 259 — explicit `Map` datatype (non-text keys allowed) — registered by cbor-cli |
+| Extension       | Description                                                         |
+| --------------- | ------------------------------------------------------------------- |
+| `dt` / `DT`     | RFC 3339 date-time as a bare epoch number / as tag 1                |
+| `ip` / `IP`     | IP address as a bare byte string / as tag 52                        |
+| `cri` / `CRI`   | URI reference as a bare CRI array / as tag 99                       |
+| `t1` / `b1`     | concatenate string/byte-string arguments into one text/byte string  |
+| `ilts` / `ilbs` | build an indefinite-length text/byte string, one chunk per argument |
+| `float`         | IEEE 754 bit patterns (float16/32/64)                               |
+| `hash`          | cryptographic hash of the content (SHA-256 by default)              |
+| `b32` / `h32`   | base32 / base32hex byte strings (RFC 4648); string form only        |
+| `same`          | assert that all items encode to identical CBOR bytes                |
+| `uuid` / `UUID` | UUID as a bare byte string / as tag 37                              |
+| `SET`           | mathematical finite set (tag 258)                                   |
+| `MAP`           | explicit `Map` datatype (tag 259; non-text keys allowed)            |
 
 ```bash
 # dt'…' / ip'…' as bare values, DT'…' / IP'…' as tagged values
@@ -287,6 +287,12 @@ echo "UUID'019e226f-78d8-7892-8c91-79013e6905e2'" | cbor compile \
 Errors and warnings are written to stderr, prefixed with `cbor:`. Warnings
 include the byte offset (CBOR input) or line/column (CDN input) where the
 violation was detected.
+
+`validate` is the exception: its report (`<name>: ok (…)`, `<name>: warning:
+…`, `<name>: invalid`) is written to stdout, like a linter's output, so it
+can be piped or grepped. In the `invalid` case, the error message (parse/decode
+error, but also e.g. an I/O error or an invalid `--type` value) is
+additionally printed to stderr, `cbor:`-prefixed.
 
 ## Specifications
 
