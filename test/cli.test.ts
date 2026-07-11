@@ -331,30 +331,34 @@ describe('cbor format', () => {
     expect(text(r)).toContain('2,');
   });
 
-  test('--split-cdn splits a string whose content parses as CDN', async () => {
-    const r = await run(
-      ['format', '--split-cdn', '--indent', '2'],
+  test('--split-cdn (default: on) splits a string whose content parses as CDN', async () => {
+    const on = await run(['format', '--indent', '2'], '"{\\"a\\":1}"');
+    expect(text(on)).toContain('" +');
+    expect(text(on).trim().endsWith('"}"')).toBe(true);
+    const off = await run(
+      ['format', '--no-split-cdn', '--indent', '2'],
       '"{\\"a\\":1}"'
     );
-    expect(text(r)).toContain('" +');
-    expect(text(r).trim().endsWith('"}"')).toBe(true);
+    expect(text(off).trim()).toBe('"{\\"a\\":1}"');
   });
 
-  test('--split-newline splits a string at newlines', async () => {
-    const r = await run(
-      ['format', '--split-newline', '--indent', '2'],
+  test('--split-newline (default: on) splits a string at newlines', async () => {
+    const on = await run(['format', '--indent', '2'], '"line1\\nline2"');
+    expect(text(on)).toBe('"line1\\n" +\n  "line2"\n');
+    const off = await run(
+      ['format', '--no-split-newline', '--indent', '2'],
       '"line1\\nline2"'
     );
-    expect(text(r)).toBe('"line1\\n" +\n  "line2"\n');
+    expect(text(off).trim()).toBe('"line1\\nline2"');
   });
 
-  test('--preserve-concatenation keeps source "a" + "b" parts', async () => {
-    const preserved = await run(
-      ['format', '--preserve-concatenation', '--indent', '2'],
+  test('--preserve-concatenation (default: on) keeps source "a" + "b" parts', async () => {
+    const preserved = await run(['format', '--indent', '2'], '"a" + "b"');
+    expect(text(preserved)).toBe('"a" +\n  "b"\n');
+    const joined = await run(
+      ['format', '--no-preserve-concatenation', '--indent', '2'],
       '"a" + "b"'
     );
-    expect(text(preserved)).toBe('"a" +\n  "b"\n');
-    const joined = await run(['format', '--indent', '2'], '"a" + "b"');
     expect(text(joined).trim()).toBe('"ab"');
   });
 });

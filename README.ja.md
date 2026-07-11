@@ -99,9 +99,9 @@ CBOR バイナリデータを CDN テキストに変換します。CBOR Sequence
 | `--int-format <fmt>`           | `decimal` \| `hex` \| `octal` \| `binary`(デフォルト: `decimal`)                                   |
 | `--float-format <fmt>`         | `decimal` \| `hex`(デフォルト: `decimal`)                                                          |
 | `--encoding-indicators <mode>` | `_N` インジケータの出力: `auto` \| `always` \| `never`(デフォルト: `auto`)                         |
-| `--split-cdn`                  | CDN として解釈できる文字列を、構造に沿った連結で分割する(`--indent` が必要)                        |
-| `--split-newline`              | 文字列を改行位置で CDN 連結として分割する(`--indent` が必要)                                       |
-| `--preserve-concatenation`     | `"a" + "b"` という元の連結表記をそのまま再出力する(結合しない)                                     |
+| `--no-split-cdn`               | CDN として解釈できる文字列を分割しない(デフォルト: `--indent` 指定時は分割する)                    |
+| `--no-split-newline`           | 文字列を改行位置で分割しない(デフォルト: `--indent` 指定時は分割する)                              |
+| `--no-preserve-concatenation`  | `"a" + "b"` という元の連結表記を1つのリテラルに結合する(デフォルト: 分割したまま保持する)          |
 | `--no-strict`                  | CBOR validity 違反を警告として報告し、処理を継続する                                               |
 
 ### `cbor format [input]`
