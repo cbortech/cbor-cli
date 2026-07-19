@@ -1,5 +1,4 @@
 import { defineCommand } from 'citty';
-import type { DecodeWarning, ParseWarning } from '@cbortech/cbor';
 import { createCbor } from '../cbor.js';
 import { readBinaryInput, readTextInput } from '../io.js';
 import {
@@ -38,36 +37,32 @@ export default defineCommand({
     try {
       const cbor = createCbor(args.extensions);
       const type = pick(args.type, TYPES, 'type', 'cbor');
-      const warnings: string[] = [];
-      const opts = {
-        strict: false,
-        onWarning: (w: DecodeWarning | ParseWarning) =>
-          warnings.push(describeWarning(w)),
-      };
+      const input =
+        type === 'cbor'
+          ? await readBinaryInput(args.input)
+          : await readTextInput(args.input);
 
-      let count = 0;
-      if (type === 'cbor') {
-        const bytes = await readBinaryInput(args.input);
-        for (const _ of cbor.fromCBORSeq(bytes, opts)) count++;
-      } else if (type === 'cdn') {
-        const text = await readTextInput(args.input);
-        const cdnOpts = {
-          ...opts,
-          unresolvedExtension: unresolvedOption(args.unresolved),
-        };
-        for (const _ of cbor.fromCDNSeq(text, cdnOpts)) count++;
-      } else {
-        const text = await readTextInput(args.input);
-        for (const _ of cbor.fromHexDumpSeq(text, opts)) count++;
+      const result = cbor.validate(input, {
+        type,
+        unresolvedExtension: unresolvedOption(args.unresolved),
+      });
+
+      for (const hint of result.hints) {
+        process.stdout.write(`${name}: hint: ${describeWarning(hint)}\n`);
+      }
+      for (const warning of result.warnings) {
+        process.stdout.write(`${name}: warning: ${describeWarning(warning)}\n`);
       }
 
-      for (const w of warnings) {
-        process.stdout.write(`${name}: warning: ${w}\n`);
+      if (result.error) {
+        process.stdout.write(`${name}: invalid\n`);
+        fail(result.error);
+        return;
       }
-      const items = `${count} item${count === 1 ? '' : 's'}`;
-      if (warnings.length > 0) {
+      const items = `${result.count} item${result.count === 1 ? '' : 's'}`;
+      if (result.warnings.length > 0) {
         process.stdout.write(
-          `${name}: ${items}, ${warnings.length} warning${warnings.length === 1 ? '' : 's'}\n`
+          `${name}: ${items}, ${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'}\n`
         );
         process.exitCode = 1;
       } else {

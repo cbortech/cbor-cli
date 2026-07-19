@@ -1,10 +1,20 @@
 import type { DecodeWarning, ParseWarning } from '@cbortech/cbor';
 
+/** Anything carrying a message plus optional position fields (warnings, `CdnSyntaxError`, …). */
+interface Located {
+  message: string;
+  offset?: number;
+  line?: number;
+  column?: number;
+}
+
 /**
  * Append location information (byte offset or line/column) to a warning
  * message, unless the message already carries its own location.
  */
-export function describeWarning(warning: DecodeWarning | ParseWarning): string {
+export function describeWarning(
+  warning: DecodeWarning | ParseWarning | Located
+): string {
   if (/\b(offset|line)\b/.test(warning.message)) return warning.message;
   if ('line' in warning && warning.line !== undefined) {
     const col =
@@ -61,10 +71,13 @@ export function collectWarnings(strict: boolean): {
   };
 }
 
-/** Report a fatal error on stderr and mark the process as failed. */
+/**
+ * Report a fatal error on stderr and mark the process as failed. Errors that
+ * carry position fields (e.g. `CdnSyntaxError`) get them appended to the
+ * message unless it already names a location.
+ */
 export function fail(err: unknown): void {
-  process.stderr.write(
-    `cbor: ${err instanceof Error ? err.message : String(err)}\n`
-  );
+  const msg = err instanceof Error ? describeWarning(err) : String(err);
+  process.stderr.write(`cbor: ${msg}\n`);
   process.exitCode = 1;
 }
