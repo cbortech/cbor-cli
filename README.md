@@ -29,10 +29,7 @@ echo '{"hello": "world", "n": 42}' | cbor compile -o hello.cbor
 
 # CBOR binary → CDN text (decompile is the default command)
 cbor hello.cbor
-# {
-#   "hello": "world",
-#   "n": 42
-# }
+# {"hello": "world", "n": 42}
 
 # CBOR binary → annotated hex dump
 cbor toHex hello.cbor
@@ -90,25 +87,28 @@ item per line.
 `cat input.cbor | cbor decompile`. If a file happens to share its name with
 a command, separate it with `--` (e.g. `cbor -- compile`).
 
-| Option                         | Description                                                                                        |
-| ------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `-o, --output <file>`          | Output CDN file (default: stdout)                                                                  |
-| `-i, --indent <n>`             | Indentation spaces per level (default: `2`, `0` = single-line)                                     |
-| `--commas <style>`             | `comma` \| `none` \| `trailing` (default: `comma`)                                                 |
-| `--bstr-encoding <enc>`        | Byte string encoding: `hex` \| `base64` \| `base64url` (default: `hex`)                            |
-| `--sqstr <mode>`               | Single-quoted byte strings: `printable-string` \| `string` \| `none` (default: `printable-string`) |
-| `--int-format <fmt>`           | `decimal` \| `hex` \| `octal` \| `binary` (default: `decimal`)                                     |
-| `--float-format <fmt>`         | `decimal` \| `hex` (default: `decimal`)                                                            |
-| `--encoding-indicators <mode>` | Emit `_N` indicators: `auto` \| `always` \| `never` (default: `auto`)                              |
-| `--no-split-cdn`               | Don't split text strings that parse as CDN (default: split when `--indent` is set)                 |
-| `--no-split-newline`           | Don't split text strings at newlines (default: split when `--indent` is set)                       |
-| `--no-preserve-concatenation`  | Join `"a" + "b"` source concatenation into one literal (default: keep it split)                    |
-| `--no-strict`                  | Report CBOR validity violations as warnings and continue                                           |
+| Option                         | Description                                                                                                                 |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `-o, --output <file>`          | Output CDN file (default: stdout)                                                                                           |
+| `-i, --indent <n>`             | Indentation spaces per level (default: `2`, `0` = single-line)                                                              |
+| `--commas <style>`             | `comma` \| `none` \| `trailing` (default: `comma`)                                                                          |
+| `--bstr-encoding <enc>`        | Byte string encoding: `hex` \| `base64` \| `base64url` (default: `hex`)                                                     |
+| `--sqstr <mode>`               | Single-quoted byte strings: `printable-string` \| `string` \| `none` (default: `printable-string`)                          |
+| `--int-format <fmt>`           | `decimal` \| `hex` \| `octal` \| `binary` (default: `decimal`)                                                              |
+| `--float-format <fmt>`         | `decimal` \| `hex` (default: `decimal`)                                                                                     |
+| `--encoding-indicators <mode>` | Emit `_N` indicators: `auto` \| `always` \| `never` (default: `auto`)                                                       |
+| `--no-split-cdn`               | Don't split text strings that parse as CDN (default: split when `--indent` is set)                                          |
+| `--no-split-newline`           | Don't split text strings at newlines (default: split when `--indent` is set)                                                |
+| `--no-preserve-concatenation`  | Join `"a" + "b"` source concatenation into one literal (default: keep it split when `--indent` is set)                      |
+| `--no-preserve-raw-string`     | Convert `` `…` `` raw string literals to double-quoted strings (default: keep them as written)                              |
+| `--no-inline-leaf-containers`  | Expand every container across multiple lines when indenting (default: containers with no nested array/map stay on one line) |
+| `--no-strict`                  | Report CBOR validity violations as warnings and continue                                                                    |
 
 ### `cbor format [input]`
 
 Format CDN text: parse it and re-serialize it. Comments are preserved by
-default.
+default; single-line output (`--indent 0`) always strips them, since line
+comments can only be terminated by a newline.
 
 Accepts all of the rendering options of `decompile`, plus:
 
@@ -147,8 +147,11 @@ annotated dump as produced by `cbor toHex` (comments are ignored); with
 
 Check input for well-formedness and validity. Recoverable validity
 violations (e.g. duplicate map keys) are reported as warnings; truly
-malformed data is reported as an error. Exits `0` only when the input is
-clean.
+malformed data (including a CDN syntax error that stops parsing) is
+reported as `invalid`. Informational hints — e.g. a CDN prefix that matches
+a known optional extension which isn't enabled — are printed as
+`<name>: hint: …` but don't affect the result. Exits `0` only when the
+input is clean.
 
 | Option                | Description                                                                       |
 | --------------------- | --------------------------------------------------------------------------------- |

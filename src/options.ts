@@ -124,8 +124,24 @@ export const cdnRenderArgs = {
     type: 'boolean',
     default: true,
     description:
-      'Re-emit "a" + "b" source concatenation instead of joining parts',
+      'Re-emit "a" + "b" source concatenation instead of joining parts (needs --indent)',
     negativeDescription: 'Join "a" + "b" source concatenation into one literal',
+  },
+  'preserve-raw-string': {
+    type: 'boolean',
+    default: true,
+    description:
+      'Re-emit `...` raw string literals using their original source text',
+    negativeDescription:
+      'Convert `...` raw string literals to double-quoted strings',
+  },
+  'inline-leaf-containers': {
+    type: 'boolean',
+    default: true,
+    description:
+      'Keep containers with no nested array/map on one line when indenting',
+    negativeDescription:
+      'Expand every container across multiple lines when indenting',
   },
 } as const;
 
@@ -140,13 +156,15 @@ interface CdnRenderArgValues {
   'split-cdn'?: boolean;
   'split-newline'?: boolean;
   'preserve-concatenation'?: boolean;
+  'preserve-raw-string'?: boolean;
+  'inline-leaf-containers'?: boolean;
 }
 
 /** Build `ToCDNOptions` from parsed {@link cdnRenderArgs} values. */
 export function cdnRenderOptions(args: CdnRenderArgValues): ToCDNOptions {
-  const indent = parseIndent(args.indent, 2);
   return {
-    indent: indent > 0 ? indent : undefined,
+    // 0 means single-line output, same as omitting the option.
+    indent: parseIndent(args.indent, 2),
     commas: pick(args.commas, COMMAS, 'commas', 'comma'),
     bstrEncoding: pick(
       args['bstr-encoding'],
@@ -171,5 +189,7 @@ export function cdnRenderOptions(args: CdnRenderArgValues): ToCDNOptions {
     splitCdn: args['split-cdn'],
     splitNewline: args['split-newline'],
     preserveConcatenation: args['preserve-concatenation'],
+    preserveRawString: args['preserve-raw-string'],
+    inlineLeafContainers: args['inline-leaf-containers'],
   };
 }

@@ -206,13 +206,13 @@ describe('implicit decompile (no subcommand)', () => {
     await writeFile(file, MAP_A1);
     const r = await run([file]);
     expect(r.code).toBe(0);
-    expect(text(r)).toBe('{\n  "a": 1\n}\n');
+    expect(text(r)).toBe('{"a": 1}\n');
   });
 
   test('piped stdin with no arguments is decompiled', async () => {
     const r = await run([], MAP_A1);
     expect(r.code).toBe(0);
-    expect(text(r)).toBe('{\n  "a": 1\n}\n');
+    expect(text(r)).toBe('{"a": 1}\n');
   });
 
   test('decompile options work without the subcommand', async () => {
@@ -227,14 +227,14 @@ describe('implicit decompile (no subcommand)', () => {
     await writeFile(file, MAP_A1);
     const r = await run(['-o', out, file]);
     expect(r.code).toBe(0);
-    expect(await readFile(out, 'utf-8')).toBe('{\n  "a": 1\n}\n');
+    expect(await readFile(out, 'utf-8')).toBe('{"a": 1}\n');
   });
 
   test('a positional after -- is treated as a file even if named like a subcommand', async () => {
     await writeFile(join(dir, 'compile'), MAP_A1);
     const r = await run(['--', 'compile'], undefined, { cwd: dir });
     expect(r.code).toBe(0);
-    expect(text(r)).toBe('{\n  "a": 1\n}\n');
+    expect(text(r)).toBe('{"a": 1}\n');
   });
 
   test('--help still shows the command list', async () => {
@@ -249,7 +249,7 @@ describe('cbor decompile', () => {
   test('decompiles CBOR from stdin to CDN', async () => {
     const r = await run(['decompile'], MAP_A1);
     expect(r.code).toBe(0);
-    expect(text(r)).toBe('{\n  "a": 1\n}\n');
+    expect(text(r)).toBe('{"a": 1}\n');
   });
 
   test('--indent 0 emits single-line output', async () => {
@@ -327,8 +327,11 @@ describe('cbor format', () => {
   });
 
   test('--commas trailing emits trailing commas', async () => {
-    const r = await run(['format', '--commas', 'trailing'], '[1, 2]');
-    expect(text(r)).toContain('2,');
+    // Nested input, so the outer array renders multi-line even with
+    // inline-leaf-containers (the default) — inlined containers never get
+    // a trailing comma.
+    const r = await run(['format', '--commas', 'trailing'], '[[1, 2], 3]');
+    expect(text(r)).toContain('3,');
   });
 
   test('--split-cdn (default: on) splits a string whose content parses as CDN', async () => {
@@ -360,6 +363,34 @@ describe('cbor format', () => {
       '"a" + "b"'
     );
     expect(text(joined).trim()).toBe('"ab"');
+  });
+
+  test('--preserve-raw-string (default: on) keeps `…` literals as written', async () => {
+    const preserved = await run(['format'], '`say "hi"`');
+    expect(text(preserved).trim()).toBe('`say "hi"`');
+    const converted = await run(
+      ['format', '--no-preserve-raw-string'],
+      '`say "hi"`'
+    );
+    expect(text(converted).trim()).toBe('"say \\"hi\\""');
+  });
+
+  test('--indent 0 joins concatenation and strips comments (single-line output)', async () => {
+    const joined = await run(['format', '--indent', '0'], '"a" + "b"');
+    expect(text(joined)).toBe('"ab"\n');
+    const stripped = await run(
+      ['format', '--indent', '0'],
+      '{ # comment\n  "x": 1\n}'
+    );
+    expect(text(stripped)).toBe('{"x":1}\n');
+  });
+
+  test('--inline-leaf-containers (default: on) keeps leaf containers on one line', async () => {
+    const src = '{"a": [1, 2, 3], "b": {"c": 1}}';
+    const inline = await run(['format'], src);
+    expect(text(inline)).toBe('{\n  "a": [1, 2, 3],\n  "b": {"c": 1}\n}\n');
+    const off = await run(['format', '--no-inline-leaf-containers'], src);
+    expect(text(off)).toContain('[\n');
   });
 });
 
@@ -456,6 +487,13 @@ describe('cbor validate', () => {
     expect(text(r)).toContain('ok (2 items)');
   });
 
+  test('a CDN syntax error reports invalid with its location', async () => {
+    const r = await run(['validate', '--type', 'cdn'], '{"a": }');
+    expect(r.code).toBe(1);
+    expect(text(r)).toContain('invalid');
+    expect(r.stderr).toContain('line 1');
+  });
+
   test('--type hex validates an annotated hex dump', async () => {
     const dump = await run(['toHex'], MAP_A1);
     const r = await run(['validate', '--type', 'hex'], text(dump));
@@ -528,13 +566,14 @@ describe('--extensions', () => {
     expect(r.stderr).toContain('dt');
   });
 
-  test('validate reports disabled-extension usage as a warning', async () => {
+  test('validate surfaces disabled-extension usage as a hint, not a failure', async () => {
     const r = await run(
       ['validate', '--type', 'cdn', '--extensions', 'none'],
       "dt'2024-01-01T00:00:00Z'"
     );
-    expect(r.code).toBe(1);
-    expect(text(r)).toContain('warning');
+    expect(r.code).toBe(0);
+    expect(text(r)).toContain('hint');
+    expect(text(r)).toContain('ok (1 item)');
   });
 
   test('an unknown extension name fails with the available list', async () => {

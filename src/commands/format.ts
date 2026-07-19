@@ -29,7 +29,7 @@ export default defineCommand({
     'preserve-comments': {
       type: 'boolean',
       default: true,
-      description: 'Preserve comments in output',
+      description: 'Preserve comments in output (needs --indent)',
       negativeDescription: 'Strip comments from output',
     },
     ...cdnRenderArgs,
