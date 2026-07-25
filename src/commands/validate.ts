@@ -1,4 +1,5 @@
 import { defineCommand } from 'citty';
+import { readFile } from 'node:fs/promises';
 import { createCbor } from '../cbor.js';
 import { readBinaryInput, readTextInput } from '../io.js';
 import {
@@ -7,7 +8,7 @@ import {
   unresolvedArg,
   unresolvedOption,
 } from '../options.js';
-import { describeWarning, fail } from '../report.js';
+import { describeCddlError, describeWarning, fail } from '../report.js';
 
 const TYPES = ['cbor', 'cdn', 'hex'] as const;
 
@@ -31,6 +32,16 @@ export default defineCommand({
     },
     ...extensionsArg,
     ...unresolvedArg,
+    cddl: {
+      type: 'string',
+      description:
+        'CDDL schema file to validate each decoded/parsed item against',
+    },
+    'cddl-rule': {
+      type: 'string',
+      description:
+        'CDDL rule to validate against (default: the schema root rule)',
+    },
   },
   async run({ args }) {
     const name = args.input && args.input !== '-' ? args.input : 'stdin';
@@ -41,10 +52,15 @@ export default defineCommand({
         type === 'cbor'
           ? await readBinaryInput(args.input)
           : await readTextInput(args.input);
+      const cddl = args.cddl ? await readFile(args.cddl, 'utf-8') : undefined;
 
       const result = cbor.validate(input, {
         type,
         unresolvedExtension: unresolvedOption(args.unresolved),
+        cddl,
+        cddlValidationOptions: args['cddl-rule']
+          ? { rule: args['cddl-rule'] }
+          : undefined,
       });
 
       for (const hint of result.hints) {
@@ -53,6 +69,16 @@ export default defineCommand({
       for (const warning of result.warnings) {
         process.stdout.write(`${name}: warning: ${describeWarning(warning)}\n`);
       }
+      for (const warning of result.cddlWarnings ?? []) {
+        process.stdout.write(
+          `${name}: cddl warning: ${describeCddlError(warning)}\n`
+        );
+      }
+      for (const error of result.cddlErrors ?? []) {
+        process.stdout.write(
+          `${name}: cddl violation: ${describeCddlError(error)}\n`
+        );
+      }
 
       if (result.error) {
         process.stdout.write(`${name}: invalid\n`);
@@ -60,9 +86,20 @@ export default defineCommand({
         return;
       }
       const items = `${result.count} item${result.count === 1 ? '' : 's'}`;
-      if (result.warnings.length > 0) {
+      const cddlErrorCount = result.cddlErrors?.length ?? 0;
+      const warningCount = result.warnings.length;
+      if (cddlErrorCount > 0) {
+        const warningPart =
+          warningCount > 0
+            ? `, ${warningCount} warning${warningCount === 1 ? '' : 's'}`
+            : '';
         process.stdout.write(
-          `${name}: ${items}, ${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'}\n`
+          `${name}: invalid (${items}${warningPart}, ${cddlErrorCount} CDDL violation${cddlErrorCount === 1 ? '' : 's'})\n`
+        );
+        process.exitCode = 1;
+      } else if (warningCount > 0) {
+        process.stdout.write(
+          `${name}: ${items}, ${warningCount} warning${warningCount === 1 ? '' : 's'}\n`
         );
         process.exitCode = 1;
       } else {
