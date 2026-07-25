@@ -392,6 +392,47 @@ describe('cbor format', () => {
     const off = await run(['format', '--no-inline-leaf-containers'], src);
     expect(text(off)).toContain('[\n');
   });
+
+  test('--preserve-number-format (default: on) keeps original literal spelling', async () => {
+    const preserved = await run(['format', '--indent', '0'], '0xff');
+    expect(text(preserved).trim()).toBe('0xff');
+    const normalized = await run(
+      ['format', '--indent', '0', '--no-preserve-number-format'],
+      '0xff'
+    );
+    expect(text(normalized).trim()).toBe('255');
+  });
+
+  test('--preserve-text-string (default: off) re-escapes from the decoded value', async () => {
+    const normalized = await run(['format', '--indent', '0'], '"a\\u0062"');
+    expect(text(normalized).trim()).toBe('"ab"');
+    const preserved = await run(
+      ['format', '--indent', '0', '--preserve-text-string'],
+      '"a\\u0062"'
+    );
+    expect(text(preserved).trim()).toBe('"a\\u0062"');
+  });
+
+  test('--preserve-blank-lines (default: on) re-emits a blank line between entries', async () => {
+    const preserved = await run(['format', '--indent', '2'], '[1,\n\n2]');
+    expect(text(preserved)).toBe('[\n  1,\n\n  2\n]\n');
+    const off = await run(
+      ['format', '--indent', '2', '--no-preserve-blank-lines'],
+      '[1,\n\n2]'
+    );
+    expect(text(off)).not.toContain('\n\n');
+  });
+
+  test('--preserve-app-sequence (default: on) keeps the original notation', async () => {
+    const src = "dt<<'2024-01-01T00:00:00Z'>>";
+    const preserved = await run(['format', '--indent', '0'], src);
+    expect(text(preserved).trim()).toBe(src);
+    const regenerated = await run(
+      ['format', '--indent', '0', '--no-preserve-app-sequence'],
+      src
+    );
+    expect(text(regenerated).trim()).toBe("dt'2024-01-01T00:00:00Z'");
+  });
 });
 
 describe('cbor toHex', () => {
@@ -506,6 +547,83 @@ describe('cbor validate', () => {
     await writeFile(file, MAP_A1);
     const r = await run(['validate', file]);
     expect(text(r)).toContain(file);
+  });
+
+  describe('--cddl', () => {
+    let schema: string;
+    beforeAll(async () => {
+      schema = join(dir, 'person.cddl');
+      await writeFile(schema, 'person = { name: tstr, ? age: uint }');
+    });
+
+    test('a matching item reports ok', async () => {
+      const r = await run(
+        ['validate', '--type', 'cdn', '--cddl', schema],
+        '{"name": "kudo", "age": 42}'
+      );
+      expect(r.code).toBe(0);
+      expect(text(r)).toContain('ok (1 item)');
+    });
+
+    test('a mismatching item is reported as a cddl violation and exits 1', async () => {
+      const r = await run(
+        ['validate', '--type', 'cdn', '--cddl', schema],
+        '{"name": 42}'
+      );
+      expect(r.code).toBe(1);
+      expect(text(r)).toContain('cddl violation');
+      expect(text(r)).toContain('/name');
+      expect(text(r)).toContain('invalid (1 item, 1 CDDL violation)');
+    });
+
+    test('--cddl-rule validates against a named rule instead of the root', async () => {
+      const rule = join(dir, 'rule.cddl');
+      await writeFile(rule, 'person = { name: tstr }\nage = uint');
+      const asAge = await run(
+        ['validate', '--type', 'cdn', '--cddl', rule, '--cddl-rule', 'age'],
+        '42'
+      );
+      expect(asAge.code).toBe(0);
+      const asPerson = await run(
+        ['validate', '--type', 'cdn', '--cddl', rule, '--cddl-rule', 'age'],
+        '"not a number"'
+      );
+      expect(asPerson.code).toBe(1);
+      expect(text(asPerson)).toContain('cddl violation');
+    });
+
+    test('a regular validity warning and a cddl violation are both counted in the summary', async () => {
+      const dupKeySchema = join(dir, 'dup-key.cddl');
+      await writeFile(dupKeySchema, 'x = { a: tstr }');
+      const r = await run(
+        ['validate', '--cddl', dupKeySchema],
+        DUP_KEY // {"a": 1, "a": 2} — duplicate key, and "a" fails the tstr rule
+      );
+      expect(r.code).toBe(1);
+      expect(text(r)).toContain('warning: duplicate map key');
+      expect(text(r)).toContain('cddl violation');
+      expect(text(r)).toContain(
+        'invalid (1 item, 1 warning, 1 CDDL violation)'
+      );
+    });
+
+    test('a missing --cddl file is reported as invalid', async () => {
+      const r = await run(
+        ['validate', '--type', 'cdn', '--cddl', join(dir, 'missing.cddl')],
+        '1'
+      );
+      expect(r.code).toBe(1);
+      expect(text(r)).toContain('invalid');
+    });
+
+    test('invalid CDDL source itself is reported as invalid', async () => {
+      const bad = join(dir, 'bad.cddl');
+      await writeFile(bad, 'foo = {');
+      const r = await run(['validate', '--type', 'cdn', '--cddl', bad], '1');
+      expect(r.code).toBe(1);
+      expect(text(r)).toContain('invalid');
+      expect(r.stderr).toContain('CDDL parse error');
+    });
   });
 });
 

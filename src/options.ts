@@ -143,6 +143,35 @@ export const cdnRenderArgs = {
     negativeDescription:
       'Expand every container across multiple lines when indenting',
   },
+  'preserve-blank-lines': {
+    type: 'boolean',
+    default: true,
+    description:
+      'Re-emit a blank line above an entry that had one in the source (needs --indent)',
+    negativeDescription: 'Do not preserve blank lines between entries',
+  },
+  'preserve-text-string': {
+    type: 'boolean',
+    default: false,
+    description:
+      'Re-emit double-quoted text strings using their original source spelling (disables --split-cdn/--split-newline for those strings)',
+  },
+  'preserve-number-format': {
+    type: 'boolean',
+    default: true,
+    description:
+      'Re-emit integer/float literals using their original source spelling (overrides --int-format/--float-format)',
+    negativeDescription:
+      'Normalize integer/float literals via --int-format/--float-format',
+  },
+  'preserve-app-sequence': {
+    type: 'boolean',
+    default: true,
+    description:
+      "Re-emit app-extension notation (prefix'...' | <<...>> | raw tag) using its original spelling",
+    negativeDescription:
+      'Regenerate app-extension notation instead of preserving its original spelling',
+  },
 } as const;
 
 interface CdnRenderArgValues {
@@ -158,6 +187,10 @@ interface CdnRenderArgValues {
   'preserve-concatenation'?: boolean;
   'preserve-raw-string'?: boolean;
   'inline-leaf-containers'?: boolean;
+  'preserve-blank-lines'?: boolean;
+  'preserve-text-string'?: boolean;
+  'preserve-number-format'?: boolean;
+  'preserve-app-sequence'?: boolean;
 }
 
 /** Build `ToCDNOptions` from parsed {@link cdnRenderArgs} values. */
@@ -191,5 +224,9 @@ export function cdnRenderOptions(args: CdnRenderArgValues): ToCDNOptions {
     preserveConcatenation: args['preserve-concatenation'],
     preserveRawString: args['preserve-raw-string'],
     inlineLeafContainers: args['inline-leaf-containers'],
+    preserveBlankLines: args['preserve-blank-lines'],
+    preserveTextString: args['preserve-text-string'],
+    preserveNumberFormat: args['preserve-number-format'],
+    preserveAppSequence: args['preserve-app-sequence'],
   };
 }

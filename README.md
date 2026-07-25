@@ -87,22 +87,26 @@ item per line.
 `cat input.cbor | cbor decompile`. If a file happens to share its name with
 a command, separate it with `--` (e.g. `cbor -- compile`).
 
-| Option                         | Description                                                                                                                 |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `-o, --output <file>`          | Output CDN file (default: stdout)                                                                                           |
-| `-i, --indent <n>`             | Indentation spaces per level (default: `2`, `0` = single-line)                                                              |
-| `--commas <style>`             | `comma` \| `none` \| `trailing` (default: `comma`)                                                                          |
-| `--bstr-encoding <enc>`        | Byte string encoding: `hex` \| `base64` \| `base64url` (default: `hex`)                                                     |
-| `--sqstr <mode>`               | Single-quoted byte strings: `printable-string` \| `string` \| `none` (default: `printable-string`)                          |
-| `--int-format <fmt>`           | `decimal` \| `hex` \| `octal` \| `binary` (default: `decimal`)                                                              |
-| `--float-format <fmt>`         | `decimal` \| `hex` (default: `decimal`)                                                                                     |
-| `--encoding-indicators <mode>` | Emit `_N` indicators: `auto` \| `always` \| `never` (default: `auto`)                                                       |
-| `--no-split-cdn`               | Don't split text strings that parse as CDN (default: split when `--indent` is set)                                          |
-| `--no-split-newline`           | Don't split text strings at newlines (default: split when `--indent` is set)                                                |
-| `--no-preserve-concatenation`  | Join `"a" + "b"` source concatenation into one literal (default: keep it split when `--indent` is set)                      |
-| `--no-preserve-raw-string`     | Convert `` `…` `` raw string literals to double-quoted strings (default: keep them as written)                              |
-| `--no-inline-leaf-containers`  | Expand every container across multiple lines when indenting (default: containers with no nested array/map stay on one line) |
-| `--no-strict`                  | Report CBOR validity violations as warnings and continue                                                                    |
+| Option                         | Description                                                                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-o, --output <file>`          | Output CDN file (default: stdout)                                                                                                                        |
+| `-i, --indent <n>`             | Indentation spaces per level (default: `2`, `0` = single-line)                                                                                           |
+| `--commas <style>`             | `comma` \| `none` \| `trailing` (default: `comma`)                                                                                                       |
+| `--bstr-encoding <enc>`        | Byte string encoding: `hex` \| `base64` \| `base64url` (default: `hex`)                                                                                  |
+| `--sqstr <mode>`               | Single-quoted byte strings: `printable-string` \| `string` \| `none` (default: `printable-string`)                                                       |
+| `--int-format <fmt>`           | `decimal` \| `hex` \| `octal` \| `binary` (default: `decimal`)                                                                                           |
+| `--float-format <fmt>`         | `decimal` \| `hex` (default: `decimal`)                                                                                                                  |
+| `--encoding-indicators <mode>` | Emit `_N` indicators: `auto` \| `always` \| `never` (default: `auto`)                                                                                    |
+| `--no-split-cdn`               | Don't split text strings that parse as CDN (default: split when `--indent` is set)                                                                       |
+| `--no-split-newline`           | Don't split text strings at newlines (default: split when `--indent` is set)                                                                             |
+| `--no-preserve-concatenation`  | Join `"a" + "b"` source concatenation into one literal (default: keep it split when `--indent` is set)                                                   |
+| `--no-preserve-raw-string`     | Convert `` `…` `` raw string literals to double-quoted strings (default: keep them as written)                                                           |
+| `--no-inline-leaf-containers`  | Expand every container across multiple lines when indenting (default: containers with no nested array/map stay on one line)                              |
+| `--no-preserve-blank-lines`    | Don't re-emit blank lines between entries (default: preserve them when `--indent` is set)                                                                |
+| `--preserve-text-string`       | Keep `"…"` text strings' original spelling (default: off; re-escaped from the decoded value; disables `--split-cdn`/`--split-newline` for those strings) |
+| `--no-preserve-number-format`  | Normalize integer/float literals via `--int-format`/`--float-format` (default: keep their original spelling)                                             |
+| `--no-preserve-app-sequence`   | Regenerate app-extension notation instead of preserving its original spelling (default: preserve it)                                                     |
+| `--no-strict`                  | Report CBOR validity violations as warnings and continue                                                                                                 |
 
 ### `cbor format [input]`
 
@@ -153,15 +157,29 @@ a known optional extension which isn't enabled — are printed as
 `<name>: hint: …` but don't affect the result. Exits `0` only when the
 input is clean.
 
+Passing `--cddl` additionally checks each decoded/parsed item against a
+[CDDL](https://www.rfc-editor.org/rfc/rfc8610) schema; a mismatch is
+reported as a `cddl violation` line and makes the result `invalid`, same as
+any other validity violation.
+
 | Option                | Description                                                                       |
 | --------------------- | --------------------------------------------------------------------------------- |
 | `-t, --type <type>`   | Input type: `cbor` \| `cdn` \| `hex` (default: `cbor`)                            |
 | `--unresolved <mode>` | Unknown / disabled app-extension prefixes (CDN input): `cpa999` (wrap) \| `error` |
+| `--cddl <file>`       | CDDL schema file to validate each decoded/parsed item against                     |
+| `--cddl-rule <name>`  | CDDL rule to validate against (default: the schema root rule)                     |
 
 ```bash
 $ printf '\xa2\x61\x61\x01\x61\x61\x02' | cbor validate
 stdin: warning: duplicate map key at offset 4
 stdin: 1 item, 1 warning
+$ echo $?
+1
+
+$ echo 'person = { name: tstr, ? age: uint }' > person.cddl
+$ echo '{"name": 42}' | cbor validate --type cdn --cddl person.cddl
+stdin: cddl violation: value for 'name' does not match at /name (offset 9)
+stdin: invalid (1 item, 1 CDDL violation)
 $ echo $?
 1
 ```

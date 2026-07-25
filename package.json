@@ -1,10 +1,12 @@
 {
   "name": "@cbortech/cbor-cli",
-  "version": "0.26.5",
+  "version": "0.26.7",
   "description": "Command-line tool to convert between CBOR binary data, CDN (Concise Diagnostic Notation) text, and annotated hex dumps",
   "keywords": [
     "cbor",
     "cdn",
+    "cddl",
+    "cddl-validation",
     "cbor-edn",
     "diagnostic-notation",
     "cli",
@@ -46,7 +48,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@cbortech/cbor": "^0.26.5",
+    "@cbortech/cbor": "^0.26.7",
     "@cbortech/hash-extension": "^0.2.3",
     "@cbortech/set-map-extensions": "^0.1.0",
     "@cbortech/uuid-extension": "^0.3.3",
@@ -55,7 +57,7 @@
   "devDependencies": {
     "@types/node": "^24.13.3",
     "esbuild": "^0.25.12",
-    "prettier": "^3.9.5",
+    "prettier": "^3.9.6",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },

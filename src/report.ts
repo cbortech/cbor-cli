@@ -1,4 +1,9 @@
-import type { DecodeWarning, ParseWarning } from '@cbortech/cbor';
+import type {
+  CddlValidationError,
+  CddlValidationWarning,
+  DecodeWarning,
+  ParseWarning,
+} from '@cbortech/cbor';
 
 /** Anything carrying a message plus optional position fields (warnings, `CdnSyntaxError`, …). */
 interface Located {
@@ -29,6 +34,21 @@ export function describeWarning(
 
 export function printWarning(warning: DecodeWarning | ParseWarning): void {
   process.stderr.write(`cbor: warning: ${describeWarning(warning)}\n`);
+}
+
+/**
+ * Format a CDDL validation error/warning (`ValidateResult.cddlErrors` /
+ * `cddlWarnings`), which carries a data `path` and character/byte `start`
+ * offset instead of the `line`/`column`/`offset` fields `describeWarning`
+ * expects.
+ */
+export function describeCddlError(
+  err: CddlValidationError | CddlValidationWarning
+): string {
+  const path = 'path' in err && err.path ? ` at ${err.path}` : '';
+  const pos =
+    'start' in err && err.start !== undefined ? ` (offset ${err.start})` : '';
+  return `${err.message}${path}${pos}`;
 }
 
 /**
