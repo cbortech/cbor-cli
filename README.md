@@ -316,9 +316,30 @@ additionally printed to stderr, `cbor:`-prefixed.
 
 ## Specifications
 
-- [RFC 8949 — Concise Binary Object Representation (CBOR)](https://www.rfc-editor.org/rfc/rfc8949.html)
-- [RFC 8742 — CBOR Sequences](https://www.rfc-editor.org/rfc/rfc8742.html)
-- [draft-ietf-cbor-edn-literals — Concise Diagnostic Notation (CDN)](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/)
+- CBOR
+  - [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949)
+- CBOR Sequences
+  - [RFC 8742](https://www.rfc-editor.org/rfc/rfc8742)
+- CDN (CBOR-EDN)
+  - [draft-ietf-cbor-edn-literals-25](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/25/)
+  - [draft-ietf-cbor-edn-literals-26](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/26/)
+- CDDL
+  - [RFC 8610](https://www.rfc-editor.org/rfc/rfc8610)
+  - [RFC 9682](https://www.rfc-editor.org/rfc/rfc9682)
+  - [RFC 9165](https://www.rfc-editor.org/rfc/rfc9165)
+
+Implementation notes:
+
+- CDN follows draft-26 while retaining draft-25's `(_ ...)` streamstring syntax
+  and `+` string-concatenation syntax.
+- CDDL implements every RFC 8610 control operator, plus RFC 9165's `.plus`,
+  `.cat`, and `.feature`.
+- The RFC 9682 updates are implemented: its string-literal grammar (including
+  `\u{...}`), empty data models at the syntax layer (a model with no rules is
+  still a semantic error when compiled), and non-literal `#6.<type>` /
+  `#7.<type>` head numbers. Comment `PCHAR` validation, bare CR line endings,
+  and comments ending at EOF are intentionally accepted more leniently than the
+  collected ABNF.
 
 ## License
 

@@ -317,11 +317,31 @@ echo "UUID'019e226f-78d8-7892-8c91-79013e6905e2'" | cbor compile \
 `--type` 値なども含む)が `cbor:` プレフィックス付きで追加で stderr にも
 出力されます。
 
-## 仕様
+## 準拠している仕様
 
-- [RFC 8949 — Concise Binary Object Representation (CBOR)](https://www.rfc-editor.org/rfc/rfc8949.html)
-- [RFC 8742 — CBOR Sequences](https://www.rfc-editor.org/rfc/rfc8742.html)
-- [draft-ietf-cbor-edn-literals — Concise Diagnostic Notation (CDN)](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/)
+- CBOR
+  - [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949)
+- CBOR Sequences
+  - [RFC 8742](https://www.rfc-editor.org/rfc/rfc8742)
+- CDN (CBOR-EDN)
+  - [draft-ietf-cbor-edn-literals-25](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/25/)
+  - [draft-ietf-cbor-edn-literals-26](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/26/)
+- CDDL
+  - [RFC 8610](https://www.rfc-editor.org/rfc/rfc8610)
+  - [RFC 9682](https://www.rfc-editor.org/rfc/rfc9682)
+  - [RFC 9165](https://www.rfc-editor.org/rfc/rfc9165)
+
+補足:
+
+- CDN は draft-26 に準拠しつつ、draft-25 の `(_ ...)` streamstring 構文と
+  `+` による文字列連結構文も引き続きサポートしています。
+- CDDL は RFC 8610 のすべての control operator と、RFC 9165 の `.plus`、
+  `.cat`、`.feature` をサポートしています。
+- RFC 9682 の更新内容である文字列リテラル文法(`\u{...}` を含む)、構文上の
+  空データモデル(ルールなしのモデルはコンパイル時に意味エラー)、非リテラルの
+  `#6.<type>` / `#7.<type>` head number に対応しています。コメントの `PCHAR`
+  検証、単独 CR の改行、EOF で終わるコメントは、collected ABNF よりも意図的に
+  寛容に受理します。
 
 ## ライセンス
 
