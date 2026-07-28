@@ -150,12 +150,6 @@ export const cdnRenderArgs = {
       'Re-emit a blank line above an entry that had one in the source (needs --indent)',
     negativeDescription: 'Do not preserve blank lines between entries',
   },
-  'preserve-text-string': {
-    type: 'boolean',
-    default: false,
-    description:
-      'Re-emit double-quoted text strings using their original source spelling (disables --split-cdn/--split-newline for those strings)',
-  },
   'preserve-number-format': {
     type: 'boolean',
     default: true,
@@ -188,7 +182,6 @@ interface CdnRenderArgValues {
   'preserve-raw-string'?: boolean;
   'inline-leaf-containers'?: boolean;
   'preserve-blank-lines'?: boolean;
-  'preserve-text-string'?: boolean;
   'preserve-number-format'?: boolean;
   'preserve-app-sequence'?: boolean;
 }
@@ -225,7 +218,6 @@ export function cdnRenderOptions(args: CdnRenderArgValues): ToCDNOptions {
     preserveRawString: args['preserve-raw-string'],
     inlineLeafContainers: args['inline-leaf-containers'],
     preserveBlankLines: args['preserve-blank-lines'],
-    preserveTextString: args['preserve-text-string'],
     preserveNumberFormat: args['preserve-number-format'],
     preserveAppSequence: args['preserve-app-sequence'],
   };

@@ -403,16 +403,6 @@ describe('cbor format', () => {
     expect(text(normalized).trim()).toBe('255');
   });
 
-  test('--preserve-text-string (default: off) re-escapes from the decoded value', async () => {
-    const normalized = await run(['format', '--indent', '0'], '"a\\u0062"');
-    expect(text(normalized).trim()).toBe('"ab"');
-    const preserved = await run(
-      ['format', '--indent', '0', '--preserve-text-string'],
-      '"a\\u0062"'
-    );
-    expect(text(preserved).trim()).toBe('"a\\u0062"');
-  });
-
   test('--preserve-blank-lines (default: on) re-emits a blank line between entries', async () => {
     const preserved = await run(['format', '--indent', '2'], '[1,\n\n2]');
     expect(text(preserved)).toBe('[\n  1,\n\n  2\n]\n');

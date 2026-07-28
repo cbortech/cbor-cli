@@ -86,26 +86,25 @@ CBOR バイナリデータを CDN テキストに変換します。CBOR Sequence
 `cat input.cbor | cbor decompile` と同じ動作になります。ファイル名が
 コマンド名と重なる場合は `--` で区切ってください(例: `cbor -- compile`)。
 
-| オプション                     | 説明                                                                                                                                                                    |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-o, --output <file>`          | 出力する CDN ファイル(デフォルト: stdout)                                                                                                                               |
-| `-i, --indent <n>`             | レベルごとのインデント幅(デフォルト: `2`、`0` で単一行)                                                                                                                 |
-| `--commas <style>`             | `comma` \| `none` \| `trailing`(デフォルト: `comma`)                                                                                                                    |
-| `--bstr-encoding <enc>`        | バイト列のエンコーディング: `hex` \| `base64` \| `base64url`(デフォルト: `hex`)                                                                                         |
-| `--sqstr <mode>`               | シングルクォートバイト列: `printable-string` \| `string` \| `none`(デフォルト: `printable-string`)                                                                      |
-| `--int-format <fmt>`           | `decimal` \| `hex` \| `octal` \| `binary`(デフォルト: `decimal`)                                                                                                        |
-| `--float-format <fmt>`         | `decimal` \| `hex`(デフォルト: `decimal`)                                                                                                                               |
-| `--encoding-indicators <mode>` | `_N` インジケータの出力: `auto` \| `always` \| `never`(デフォルト: `auto`)                                                                                              |
-| `--no-split-cdn`               | CDN として解釈できる文字列を分割しない(デフォルト: `--indent` 指定時は分割する)                                                                                         |
-| `--no-split-newline`           | 文字列を改行位置で分割しない(デフォルト: `--indent` 指定時は分割する)                                                                                                   |
-| `--no-preserve-concatenation`  | `"a" + "b"` という元の連結表記を1つのリテラルに結合する(デフォルト: `--indent` 指定時は保持する)                                                                        |
-| `--no-preserve-raw-string`     | `` `…` `` raw 文字列リテラルをダブルクォート文字列に変換する(デフォルト: 元の表記を保持する)                                                                            |
-| `--no-inline-leaf-containers`  | すべてのコンテナをインデント時に複数行で出力する(デフォルト: 配列/マップを含まないコンテナは1行)                                                                        |
-| `--no-preserve-blank-lines`    | エントリ間の空行を再出力しない(デフォルト: `--indent` 指定時は元の空行を保持する)                                                                                       |
-| `--preserve-text-string`       | `"…"` テキスト文字列の元の表記を保持する(デフォルト: オフ。デコード後の値から再エスケープする。有効にするとその文字列は `--split-cdn`/`--split-newline` の対象外になる) |
-| `--no-preserve-number-format`  | 整数/浮動小数点リテラルを `--int-format`/`--float-format` で正規化する(デフォルト: 元の表記を保持)                                                                      |
-| `--no-preserve-app-sequence`   | app-extension 表記を再生成する(デフォルト: 元の表記を保持する)                                                                                                          |
-| `--no-strict`                  | CBOR validity 違反を警告として報告し、処理を継続する                                                                                                                    |
+| オプション                     | 説明                                                                                               |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `-o, --output <file>`          | 出力する CDN ファイル(デフォルト: stdout)                                                          |
+| `-i, --indent <n>`             | レベルごとのインデント幅(デフォルト: `2`、`0` で単一行)                                            |
+| `--commas <style>`             | `comma` \| `none` \| `trailing`(デフォルト: `comma`)                                               |
+| `--bstr-encoding <enc>`        | バイト列のエンコーディング: `hex` \| `base64` \| `base64url`(デフォルト: `hex`)                    |
+| `--sqstr <mode>`               | シングルクォートバイト列: `printable-string` \| `string` \| `none`(デフォルト: `printable-string`) |
+| `--int-format <fmt>`           | `decimal` \| `hex` \| `octal` \| `binary`(デフォルト: `decimal`)                                   |
+| `--float-format <fmt>`         | `decimal` \| `hex`(デフォルト: `decimal`)                                                          |
+| `--encoding-indicators <mode>` | `_N` インジケータの出力: `auto` \| `always` \| `never`(デフォルト: `auto`)                         |
+| `--no-split-cdn`               | CDN として解釈できる文字列を分割しない(デフォルト: `--indent` 指定時は分割する)                    |
+| `--no-split-newline`           | 文字列を改行位置で分割しない(デフォルト: `--indent` 指定時は分割する)                              |
+| `--no-preserve-concatenation`  | `"a" + "b"` という元の連結表記を1つのリテラルに結合する(デフォルト: `--indent` 指定時は保持する)   |
+| `--no-preserve-raw-string`     | `` `…` `` raw 文字列リテラルをダブルクォート文字列に変換する(デフォルト: 元の表記を保持する)       |
+| `--no-inline-leaf-containers`  | すべてのコンテナをインデント時に複数行で出力する(デフォルト: 配列/マップを含まないコンテナは1行)   |
+| `--no-preserve-blank-lines`    | エントリ間の空行を再出力しない(デフォルト: `--indent` 指定時は元の空行を保持する)                  |
+| `--no-preserve-number-format`  | 整数/浮動小数点リテラルを `--int-format`/`--float-format` で正規化する(デフォルト: 元の表記を保持) |
+| `--no-preserve-app-sequence`   | app-extension 表記を再生成する(デフォルト: 元の表記を保持する)                                     |
+| `--no-strict`                  | CBOR validity 違反を警告として報告し、処理を継続する                                               |
 
 ### `cbor format [input]`
 
@@ -318,11 +317,31 @@ echo "UUID'019e226f-78d8-7892-8c91-79013e6905e2'" | cbor compile \
 `--type` 値なども含む)が `cbor:` プレフィックス付きで追加で stderr にも
 出力されます。
 
-## 仕様
+## 準拠している仕様
 
-- [RFC 8949 — Concise Binary Object Representation (CBOR)](https://www.rfc-editor.org/rfc/rfc8949.html)
-- [RFC 8742 — CBOR Sequences](https://www.rfc-editor.org/rfc/rfc8742.html)
-- [draft-ietf-cbor-edn-literals — Concise Diagnostic Notation (CDN)](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/)
+- CBOR
+  - [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949)
+- CBOR Sequences
+  - [RFC 8742](https://www.rfc-editor.org/rfc/rfc8742)
+- CDN (CBOR-EDN)
+  - [draft-ietf-cbor-edn-literals-25](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/25/)
+  - [draft-ietf-cbor-edn-literals-26](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/26/)
+- CDDL
+  - [RFC 8610](https://www.rfc-editor.org/rfc/rfc8610)
+  - [RFC 9682](https://www.rfc-editor.org/rfc/rfc9682)
+  - [RFC 9165](https://www.rfc-editor.org/rfc/rfc9165)
+
+補足:
+
+- CDN は draft-26 に準拠しつつ、draft-25 の `(_ ...)` streamstring 構文と
+  `+` による文字列連結構文も引き続きサポートしています。
+- CDDL は RFC 8610 のすべての control operator と、RFC 9165 の `.plus`、
+  `.cat`、`.feature` をサポートしています。
+- RFC 9682 の更新内容である文字列リテラル文法(`\u{...}` を含む)、構文上の
+  空データモデル(ルールなしのモデルはコンパイル時に意味エラー)、非リテラルの
+  `#6.<type>` / `#7.<type>` head number に対応しています。コメントの `PCHAR`
+  検証、単独 CR の改行、EOF で終わるコメントは、collected ABNF よりも意図的に
+  寛容に受理します。
 
 ## ライセンス
 
