@@ -271,6 +271,14 @@ describe('cbor decompile', () => {
     expect(text(r).trim()).toBe('0x2a');
   });
 
+  test("--float-format app-extension renders floats as float'...'", async () => {
+    const r = await run(
+      ['decompile', '--float-format', 'app-extension'],
+      Buffer.from('f93e00', 'hex') // 1.5 as a CBOR float16
+    );
+    expect(text(r).trim()).toBe("float'3e00'");
+  });
+
   test('--bstr-encoding base64 renders byte strings as b64', async () => {
     const r = await run(
       ['decompile', '--bstr-encoding', 'base64'],
@@ -335,14 +343,17 @@ describe('cbor format', () => {
   });
 
   test('--split-cdn (default: on) splits a string whose content parses as CDN', async () => {
-    const on = await run(['format', '--indent', '2'], '"{\\"a\\":1}"');
+    // The embedded value has a nested array, so inline-leaf-containers (the
+    // default) doesn't collapse it to one line and splitCdn still applies —
+    // a flat leaf like `{"a":1}` would collapse instead and stay unsplit.
+    const on = await run(['format', '--indent', '2'], '"{\\"a\\":[1,2]}"');
     expect(text(on)).toContain('" +');
     expect(text(on).trim().endsWith('"}"')).toBe(true);
     const off = await run(
       ['format', '--no-split-cdn', '--indent', '2'],
-      '"{\\"a\\":1}"'
+      '"{\\"a\\":[1,2]}"'
     );
-    expect(text(off).trim()).toBe('"{\\"a\\":1}"');
+    expect(text(off).trim()).toBe('"{\\"a\\":[1,2]}"');
   });
 
   test('--split-newline (default: on) splits a string at newlines', async () => {
@@ -413,15 +424,71 @@ describe('cbor format', () => {
     expect(text(off)).not.toContain('\n\n');
   });
 
-  test('--preserve-app-sequence (default: on) keeps the original notation', async () => {
+  test('--preserve-blank-lines (default: on) re-emits a blank line between top-level sequence items', async () => {
+    const preserved = await run(['format', '--indent', '2'], '1,\n\n2');
+    expect(text(preserved)).toBe('1\n\n2\n');
+    const off = await run(
+      ['format', '--indent', '2', '--no-preserve-blank-lines'],
+      '1,\n\n2'
+    );
+    expect(text(off)).toBe('1\n2\n');
+    const singleLine = await run(['format', '--indent', '0'], '1,\n\n2');
+    expect(text(singleLine)).toBe('1\n2\n');
+  });
+
+  test('--preserve-app-prefix (default: on) keeps the original notation', async () => {
     const src = "dt<<'2024-01-01T00:00:00Z'>>";
     const preserved = await run(['format', '--indent', '0'], src);
     expect(text(preserved).trim()).toBe(src);
+    const regenerated = await run(
+      ['format', '--indent', '0', '--no-preserve-app-prefix'],
+      src
+    );
+    expect(text(regenerated).trim()).toBe("dt'2024-01-01T00:00:00Z'");
+  });
+
+  test('--preserve-app-sequence is a deprecated alias for --preserve-app-prefix', async () => {
+    const src = "dt<<'2024-01-01T00:00:00Z'>>";
     const regenerated = await run(
       ['format', '--indent', '0', '--no-preserve-app-sequence'],
       src
     );
     expect(text(regenerated).trim()).toBe("dt'2024-01-01T00:00:00Z'");
+  });
+
+  test('--preserve-app-prefix takes precedence over the deprecated --preserve-app-sequence alias', async () => {
+    const src = "dt<<'2024-01-01T00:00:00Z'>>";
+    const r = await run(
+      [
+        'format',
+        '--indent',
+        '0',
+        '--preserve-app-prefix',
+        '--no-preserve-app-sequence',
+      ],
+      src
+    );
+    expect(text(r).trim()).toBe(src);
+  });
+
+  test('--modern-concat (default: off) renders preserved concatenation as t1<<...>>', async () => {
+    const off = await run(['format', '--indent', '2'], '"a" + "b"');
+    expect(text(off)).toBe('"a" +\n  "b"\n');
+    const on = await run(
+      ['format', '--indent', '2', '--modern-concat'],
+      '"a" + "b"'
+    );
+    expect(text(on).trim()).toBe('t1<<"a", "b">>');
+  });
+
+  test('--modern-stream-syntax (default: off) renders indefinite-length strings as ilts<<...>>', async () => {
+    const off = await run(['format', '--indent', '2'], '(_ "a", "b")');
+    expect(text(off).trim()).toBe('(_ "a", "b")');
+    const on = await run(
+      ['format', '--indent', '2', '--modern-stream-syntax'],
+      '(_ "a", "b")'
+    );
+    expect(text(on).trim()).toBe('ilts<<"a", "b">>');
   });
 });
 

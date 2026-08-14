@@ -1,6 +1,6 @@
 {
   "name": "@cbortech/cbor-cli",
-  "version": "0.26.8",
+  "version": "0.27.0",
   "description": "Command-line tool to convert between CBOR binary data, CDN (Concise Diagnostic Notation) text, and annotated hex dumps",
   "keywords": [
     "cbor",
@@ -39,7 +39,7 @@
   "scripts": {
     "build": "node build.mjs",
     "prepack": "npm run build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "pretest": "npm run build",
     "test": "vitest run",
@@ -48,21 +48,20 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@cbortech/cbor": "^0.26.8",
-    "@cbortech/hash-extension": "^0.2.3",
-    "@cbortech/set-map-extensions": "^0.1.0",
-    "@cbortech/uuid-extension": "^0.26.8",
+    "@cbortech/cbor": "^0.27.0",
+    "@cbortech/hash-extension": "^0.27.0",
+    "@cbortech/set-map-extensions": "^0.27.0",
+    "@cbortech/uuid-extension": "^0.27.0",
     "citty": "^0.2.2"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
-    "esbuild": "^0.25.12",
+    "esbuild": "^0.28.2",
     "prettier": "^3.9.6",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
   "allowScripts": {
-    "esbuild@0.25.12": true,
-    "esbuild@0.28.1": true
+    "esbuild@0.28.2": true
   }
 }

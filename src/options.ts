@@ -34,7 +34,7 @@ const COMMAS = ['comma', 'none', 'trailing'] as const;
 const BSTR_ENCODING = ['hex', 'base64', 'base64url'] as const;
 const SQSTR = ['printable-string', 'string', 'none'] as const;
 const INT_FORMAT = ['decimal', 'hex', 'octal', 'binary'] as const;
-const FLOAT_FORMAT = ['decimal', 'hex'] as const;
+const FLOAT_FORMAT = ['decimal', 'hex', 'app-extension'] as const;
 const ENC_INDICATORS = ['auto', 'always', 'never'] as const;
 
 /** citty arg definition for `--extensions`, shared by every command. */
@@ -99,7 +99,8 @@ export const cdnRenderArgs = {
   'float-format': {
     type: 'string',
     default: 'decimal',
-    description: 'Float format: decimal | hex',
+    description:
+      "Float format: decimal | hex | app-extension (float'...', losslessly preserves NaN/Infinity)",
   },
   'encoding-indicators': {
     type: 'string',
@@ -158,13 +159,48 @@ export const cdnRenderArgs = {
     negativeDescription:
       'Normalize integer/float literals via --int-format/--float-format',
   },
-  'preserve-app-sequence': {
+  /**
+   * No `default` here (unlike its siblings above): the library's own
+   * `preserveAppPrefix ?? preserveAppSequence` merge (see
+   * `normalizeOptions()` in `@cbortech/cbor`) only falls back to the
+   * deprecated alias when the new option is left *unset* — a `default`
+   * would make this always appear "set" and permanently shadow
+   * `--preserve-app-sequence`. The `true` default is applied in
+   * `cdnRenderOptions` instead, after both flags have been consulted.
+   */
+  'preserve-app-prefix': {
     type: 'boolean',
-    default: true,
     description:
-      "Re-emit app-extension notation (prefix'...' | <<...>> | raw tag) using its original spelling",
+      "Re-emit app-extension notation (prefix'...' | <<...>> | raw tag) using its original spelling (default: preserve it)",
     negativeDescription:
       'Regenerate app-extension notation instead of preserving its original spelling',
+  },
+  /**
+   * Deprecated alias for `--preserve-app-prefix`, kept for backward
+   * compatibility with existing scripts. Only consulted when
+   * `--preserve-app-prefix` is left unset (see `cdnRenderOptions`),
+   * mirroring the library's own precedence for the renamed option.
+   */
+  'preserve-app-sequence': {
+    type: 'boolean',
+    description: 'Deprecated alias for --preserve-app-prefix',
+    negativeDescription: 'Deprecated alias for --no-preserve-app-prefix',
+  },
+  'modern-concat': {
+    type: 'boolean',
+    default: false,
+    description:
+      'Render preserved "a" + "b" concatenation (and elisions) as draft-27 t1<<...>>/b1<<...>> app-sequence notation',
+    negativeDescription:
+      'Render preserved concatenation as legacy "a" + "b" notation',
+  },
+  'modern-stream-syntax': {
+    type: 'boolean',
+    default: false,
+    description:
+      'Render indefinite-length strings as draft-27 ilts<<...>>/ilbs<<...>> app-sequence notation',
+    negativeDescription:
+      'Render indefinite-length strings as legacy (_ "a", "b") notation',
   },
 } as const;
 
@@ -183,7 +219,10 @@ interface CdnRenderArgValues {
   'inline-leaf-containers'?: boolean;
   'preserve-blank-lines'?: boolean;
   'preserve-number-format'?: boolean;
+  'preserve-app-prefix'?: boolean;
   'preserve-app-sequence'?: boolean;
+  'modern-concat'?: boolean;
+  'modern-stream-syntax'?: boolean;
 }
 
 /** Build `ToCDNOptions` from parsed {@link cdnRenderArgs} values. */
@@ -219,6 +258,13 @@ export function cdnRenderOptions(args: CdnRenderArgValues): ToCDNOptions {
     inlineLeafContainers: args['inline-leaf-containers'],
     preserveBlankLines: args['preserve-blank-lines'],
     preserveNumberFormat: args['preserve-number-format'],
-    preserveAppSequence: args['preserve-app-sequence'],
+    // --preserve-app-prefix wins when explicitly set; the deprecated
+    // --preserve-app-sequence alias is only consulted as a fallback, and
+    // `true` is the ultimate default — mirroring the library's own
+    // `preserveAppPrefix ?? preserveAppSequence` precedence.
+    preserveAppPrefix:
+      args['preserve-app-prefix'] ?? args['preserve-app-sequence'] ?? true,
+    modernConcat: args['modern-concat'],
+    modernStreamSyntax: args['modern-stream-syntax'],
   };
 }

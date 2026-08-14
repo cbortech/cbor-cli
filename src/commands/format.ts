@@ -10,6 +10,8 @@ import {
 } from '../options.js';
 import { collectWarnings, fail } from '../report.js';
 
+const BLANK_LINE_RE = /\r?\n[ \t]*\r?\n/;
+
 export default defineCommand({
   meta: {
     name: 'format',
@@ -60,7 +62,25 @@ export default defineCommand({
 
       warnings.flush();
       const toCDNOpts = { ...cdnRenderOptions(args), preserveComments };
-      const formatted = items.map((item) => item.toCDN(toCDNOpts)).join('\n');
+      // A blank line between two top-level sequence items lives in the
+      // source text between them, outside either item's own AST, so a
+      // plain `.map(toCDN).join('\n')` would always collapse it — walk the
+      // gaps between items ourselves instead (mirrors the playground's
+      // formatCdnText()). Only meaningful when pretty-printing (indent !==
+      // 0); --preserve-blank-lines has no effect in single-line output.
+      const preserveBlankLines =
+        !!toCDNOpts.preserveBlankLines && toCDNOpts.indent !== 0;
+      let formatted = '';
+      let prevEnd: number | null = null;
+      for (const item of items) {
+        if (prevEnd !== null) {
+          const between = text.slice(prevEnd, item.start!);
+          formatted +=
+            preserveBlankLines && BLANK_LINE_RE.test(between) ? '\n\n' : '\n';
+        }
+        formatted += item.toCDN(toCDNOpts);
+        prevEnd = item.end!;
+      }
       await writeTextOutput(args.output, formatted);
     } catch (err) {
       fail(err);

@@ -95,7 +95,7 @@ a command, separate it with `--` (e.g. `cbor -- compile`).
 | `--bstr-encoding <enc>`        | Byte string encoding: `hex` \| `base64` \| `base64url` (default: `hex`)                                                     |
 | `--sqstr <mode>`               | Single-quoted byte strings: `printable-string` \| `string` \| `none` (default: `printable-string`)                          |
 | `--int-format <fmt>`           | `decimal` \| `hex` \| `octal` \| `binary` (default: `decimal`)                                                              |
-| `--float-format <fmt>`         | `decimal` \| `hex` (default: `decimal`)                                                                                     |
+| `--float-format <fmt>`         | `decimal` \| `hex` \| `app-extension` (`float'...'`, losslessly preserves NaN/Infinity) (default: `decimal`)                |
 | `--encoding-indicators <mode>` | Emit `_N` indicators: `auto` \| `always` \| `never` (default: `auto`)                                                       |
 | `--no-split-cdn`               | Don't split text strings that parse as CDN (default: split when `--indent` is set)                                          |
 | `--no-split-newline`           | Don't split text strings at newlines (default: split when `--indent` is set)                                                |
@@ -104,14 +104,23 @@ a command, separate it with `--` (e.g. `cbor -- compile`).
 | `--no-inline-leaf-containers`  | Expand every container across multiple lines when indenting (default: containers with no nested array/map stay on one line) |
 | `--no-preserve-blank-lines`    | Don't re-emit blank lines between entries (default: preserve them when `--indent` is set)                                   |
 | `--no-preserve-number-format`  | Normalize integer/float literals via `--int-format`/`--float-format` (default: keep their original spelling)                |
-| `--no-preserve-app-sequence`   | Regenerate app-extension notation instead of preserving its original spelling (default: preserve it)                        |
+| `--no-preserve-app-prefix`     | Regenerate app-extension notation instead of preserving its original spelling (default: preserve it)                        |
+| `--modern-concat`              | Render preserved `"a" + "b"` concatenation (and elisions) as draft-27 `t1<<...>>`/`b1<<...>>` notation (default: off)       |
+| `--modern-stream-syntax`       | Render indefinite-length strings as draft-27 `ilts<<...>>`/`ilbs<<...>>` notation instead of `(_ "a", "b")` (default: off)  |
 | `--no-strict`                  | Report CBOR validity violations as warnings and continue                                                                    |
+
+`--preserve-app-sequence` / `--no-preserve-app-sequence` are deprecated aliases
+for `--preserve-app-prefix` / `--no-preserve-app-prefix`, kept for backward
+compatibility; `--preserve-app-prefix` takes precedence when both are given.
 
 ### `cbor format [input]`
 
 Format CDN text: parse it and re-serialize it. Comments are preserved by
 default; single-line output (`--indent 0`) always strips them, since line
-comments can only be terminated by a newline.
+comments can only be terminated by a newline. For a multi-item CDN sequence,
+`--preserve-blank-lines` also re-emits a blank line between two top-level
+items that had one in the source, in addition to the entries it preserves
+within a single item's containers.
 
 Accepts all of the rendering options of `decompile`, plus:
 
@@ -322,7 +331,7 @@ additionally printed to stderr, `cbor:`-prefixed.
   - [RFC 8742](https://www.rfc-editor.org/rfc/rfc8742)
 - CDN (CBOR-EDN)
   - [draft-ietf-cbor-edn-literals-25](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/25/)
-  - [draft-ietf-cbor-edn-literals-26](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/26/)
+  - [draft-ietf-cbor-edn-literals-27](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/27/)
 - CDDL
   - [RFC 8610](https://www.rfc-editor.org/rfc/rfc8610)
   - [RFC 9682](https://www.rfc-editor.org/rfc/rfc9682)
@@ -330,7 +339,7 @@ additionally printed to stderr, `cbor:`-prefixed.
 
 Implementation notes:
 
-- CDN follows draft-26 while retaining draft-25's `(_ ...)` streamstring syntax
+- CDN follows draft-27 while retaining draft-25's `(_ ...)` streamstring syntax
   and `+` string-concatenation syntax.
 - CDDL implements every RFC 8610 control operator, plus RFC 9165's `.plus`,
   `.cat`, and `.feature`.
