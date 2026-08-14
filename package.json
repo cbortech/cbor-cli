@@ -39,7 +39,7 @@
   "scripts": {
     "build": "node build.mjs",
     "prepack": "npm run build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "pretest": "npm run build",
     "test": "vitest run",
@@ -58,7 +58,7 @@
     "@types/node": "^24.13.3",
     "esbuild": "^0.25.12",
     "prettier": "^3.9.6",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
   "allowScripts": {
