@@ -56,13 +56,12 @@
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
-    "esbuild": "^0.25.12",
+    "esbuild": "^0.28.2",
     "prettier": "^3.9.6",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
   "allowScripts": {
-    "esbuild@0.25.12": true,
-    "esbuild@0.28.1": true
+    "esbuild@0.28.2": true
   }
 }
