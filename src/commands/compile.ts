@@ -1,7 +1,13 @@
 import { defineCommand } from 'citty';
 import { createCbor } from '../cbor.js';
 import { readTextInput, writeBinaryOutput } from '../io.js';
-import { extensionsArg, unresolvedArg, unresolvedOption } from '../options.js';
+import {
+  cddlArgs,
+  cddlOptions,
+  extensionsArg,
+  unresolvedArg,
+  unresolvedOption,
+} from '../options.js';
 import { collectWarnings, fail } from '../report.js';
 
 export default defineCommand({
@@ -22,6 +28,7 @@ export default defineCommand({
     },
     ...extensionsArg,
     ...unresolvedArg,
+    ...cddlArgs,
     strict: {
       type: 'boolean',
       default: true,
@@ -34,10 +41,12 @@ export default defineCommand({
     try {
       const cbor = createCbor(args.extensions);
       const text = await readTextInput(args.input);
+      const cddl = await cddlOptions(args);
       const warnings = collectWarnings(args.strict);
       const bytes = cbor.compile(text, {
         ...warnings.opts,
         unresolvedExtension: unresolvedOption(args.unresolved),
+        ...cddl,
       });
       warnings.flush();
       await writeBinaryOutput(args.output, bytes);

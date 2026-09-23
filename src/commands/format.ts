@@ -2,6 +2,8 @@ import { defineCommand } from 'citty';
 import { createCbor } from '../cbor.js';
 import { readTextInput, writeTextOutput } from '../io.js';
 import {
+  cddlArgs,
+  cddlOptions,
   cdnRenderArgs,
   cdnRenderOptions,
   extensionsArg,
@@ -37,6 +39,7 @@ export default defineCommand({
     ...cdnRenderArgs,
     ...extensionsArg,
     ...unresolvedArg,
+    ...cddlArgs,
     strict: {
       type: 'boolean',
       default: true,
@@ -50,12 +53,14 @@ export default defineCommand({
       const cbor = createCbor(args.extensions);
       const text = await readTextInput(args.input);
       const preserveComments = args['preserve-comments'];
+      const cddl = await cddlOptions(args);
 
       const warnings = collectWarnings(args.strict);
       const items = [
         ...cbor.fromCDNSeq(text, {
           preserveComments,
           unresolvedExtension: unresolvedOption(args.unresolved),
+          ...cddl,
           ...warnings.opts,
         }),
       ];

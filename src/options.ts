@@ -1,4 +1,5 @@
 import type { ToCDNOptions } from '@cbortech/cbor';
+import { readFile } from 'node:fs/promises';
 import { EXTENSION_NAMES } from './cbor.js';
 
 export function pick<T extends string>(
@@ -66,6 +67,44 @@ export function unresolvedOption(
   value: string | undefined
 ): 'cpa999' | 'error' {
   return pick(value, UNRESOLVED, 'unresolved', 'cpa999');
+}
+
+/**
+ * citty arg definitions for `--cddl` / `--cddl-rule`, shared by every command
+ * that decodes or parses items. Besides validating each item, the schema
+ * lets `e'name'` external references (draft-ietf-cbor-edn-e-ref) resolve to
+ * the integer the schema binds them to, and lets CDN output spell such map
+ * keys as `e'name'` and expand `.cbor`-typed embedded CBOR.
+ */
+export const cddlArgs = {
+  cddl: {
+    type: 'string',
+    description:
+      "CDDL schema file to validate each item against (also resolves e'...' names it defines)",
+  },
+  'cddl-rule': {
+    type: 'string',
+    description:
+      'CDDL rule to validate against (default: the schema root rule)',
+  },
+} as const;
+
+/**
+ * Read the `--cddl` schema file and build the `cddl` /
+ * `cddlValidationOptions` options from parsed {@link cddlArgs} values.
+ * Returns an empty object when `--cddl` is not given.
+ */
+export async function cddlOptions(args: {
+  cddl?: string;
+  'cddl-rule'?: string;
+}): Promise<{ cddl?: string; cddlValidationOptions?: { rule: string } }> {
+  if (!args.cddl) return {};
+  return {
+    cddl: await readFile(args.cddl, 'utf-8'),
+    cddlValidationOptions: args['cddl-rule']
+      ? { rule: args['cddl-rule'] }
+      : undefined,
+  };
 }
 
 /** citty arg definitions shared by commands that render CDN output. */

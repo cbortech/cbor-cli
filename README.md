@@ -68,11 +68,13 @@ application extensions are enabled — see
 Compile CDN text into CBOR binary data. A multi-item CDN sequence produces
 a CBOR Sequence (RFC 8742).
 
-| Option                | Description                                                           |
-| --------------------- | --------------------------------------------------------------------- |
-| `-o, --output <file>` | Output CBOR file (default: stdout)                                    |
-| `--unresolved <mode>` | Unknown / disabled app-extension prefixes: `cpa999` (wrap) \| `error` |
-| `--no-strict`         | Report CDN validity violations as warnings and continue               |
+| Option                | Description                                                                       |
+| --------------------- | --------------------------------------------------------------------------------- |
+| `-o, --output <file>` | Output CBOR file (default: stdout)                                                |
+| `--unresolved <mode>` | Unknown / disabled app-extension prefixes: `cpa999` (wrap) \| `error`             |
+| `--cddl <file>`       | CDDL schema to validate against (see [Using a CDDL schema](#using-a-cddl-schema)) |
+| `--cddl-rule <name>`  | CDDL rule to validate against (default: the schema root rule)                     |
+| `--no-strict`         | Report CDN validity violations as warnings and continue                           |
 
 As a safety measure, `compile` (and `fromHex`) refuse to write binary data
 directly to a terminal — write to a file with `-o` or pipe the output.
@@ -107,6 +109,8 @@ a command, separate it with `--` (e.g. `cbor -- compile`).
 | `--no-preserve-app-prefix`     | Regenerate app-extension notation instead of preserving its original spelling (default: preserve it)                        |
 | `--modern-concat`              | Render preserved `"a" + "b"` concatenation (and elisions) as draft-27 `t1<<...>>`/`b1<<...>>` notation (default: off)       |
 | `--modern-stream-syntax`       | Render indefinite-length strings as draft-27 `ilts<<...>>`/`ilbs<<...>>` notation instead of `(_ "a", "b")` (default: off)  |
+| `--cddl <file>`                | CDDL schema to validate against (see [Using a CDDL schema](#using-a-cddl-schema))                                           |
+| `--cddl-rule <name>`           | CDDL rule to validate against (default: the schema root rule)                                                               |
 | `--no-strict`                  | Report CBOR validity violations as warnings and continue                                                                    |
 
 `--preserve-app-sequence` / `--no-preserve-app-sequence` are deprecated aliases
@@ -124,16 +128,20 @@ within a single item's containers.
 
 Accepts all of the rendering options of `decompile`, plus:
 
-| Option                   | Description                                                           |
-| ------------------------ | --------------------------------------------------------------------- |
-| `--no-preserve-comments` | Strip comments from the output                                        |
-| `--unresolved <mode>`    | Unknown / disabled app-extension prefixes: `cpa999` (wrap) \| `error` |
-| `--no-strict`            | Report CDN validity violations as warnings and continue               |
+| Option                   | Description                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `--no-preserve-comments` | Strip comments from the output                                                    |
+| `--unresolved <mode>`    | Unknown / disabled app-extension prefixes: `cpa999` (wrap) \| `error`             |
+| `--cddl <file>`          | CDDL schema to validate against (see [Using a CDDL schema](#using-a-cddl-schema)) |
+| `--cddl-rule <name>`     | CDDL rule to validate against (default: the schema root rule)                     |
+| `--no-strict`            | Report CDN validity violations as warnings and continue                           |
 
 ### `cbor toHex [input]`
 
 Convert CBOR binary data to an annotated hex dump (or plain hex with
-`--no-annotate`).
+`--no-annotate`). Tags defined by RFC 9277 are labeled in the annotation,
+e.g. `Tag 55799 (self-described CBOR)` or
+`Tag 1668546929 (CoAP Content-Format 112)`.
 
 | Option                    | Description                                              |
 | ------------------------- | -------------------------------------------------------- |
@@ -190,6 +198,29 @@ stdin: cddl violation: value for 'name' does not match at /name (offset 9)
 stdin: invalid (1 item, 1 CDDL violation)
 $ echo $?
 1
+```
+
+### Using a CDDL schema
+
+`compile`, `decompile`, and `format` also accept `--cddl` / `--cddl-rule`.
+Each item must match the schema — a mismatch is an error, like a CDN
+syntax error. In addition, the schema is used to:
+
+- resolve `e'name'` external references
+  ([draft-ietf-cbor-edn-e-ref](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-e-ref/))
+  to the integer the schema binds them to via a `&(name: value)` map key
+  (experimental; only names bound directly to an integer literal resolve);
+- spell such integer map keys as `e'name'` in CDN output;
+- render a byte string typed as `bstr .cbor <type>` as embedded CBOR
+  (`<<...>>`).
+
+```bash
+$ printf 'msg = { ? &(title: -1) => tstr, ? p: bstr .cbor [uint, tstr] }\n' > msg.cddl
+$ echo "{e'title': \"hi\", \"p\": <<[1, \"x\"]>>}" | cbor compile --cddl msg.cddl -o msg.cbor
+$ cbor decompile --indent 0 msg.cbor
+{-1:"hi","p":h'82016178'}
+$ cbor decompile --indent 0 --cddl msg.cddl msg.cbor
+{e'title':"hi","p":<<[1,"x"]>>}
 ```
 
 ## CDN Extensions
@@ -332,6 +363,7 @@ additionally printed to stderr, `cbor:`-prefixed.
 - CDN (CBOR-EDN)
   - [draft-ietf-cbor-edn-literals-25](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/25/)
   - [draft-ietf-cbor-edn-literals-27](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/27/)
+  - [draft-ietf-cbor-edn-e-ref-03](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-e-ref/03/)
 - CDDL
   - [RFC 8610](https://www.rfc-editor.org/rfc/rfc8610)
   - [RFC 9682](https://www.rfc-editor.org/rfc/rfc9682)
