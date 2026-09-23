@@ -506,6 +506,13 @@ describe('cbor toHex', () => {
     expect(text(r)).not.toContain('--');
   });
 
+  test('labels RFC 9277 tags', async () => {
+    // 55799(1668546929([])) — self-described CBOR + CoAP Content-Format 112
+    const r = await run(['toHex'], Buffer.from('d9d9f7da6374017180', 'hex'));
+    expect(text(r)).toContain('Tag 55799 (self-described CBOR)');
+    expect(text(r)).toContain('Tag 1668546929 (CoAP Content-Format 112)');
+  });
+
   test('--no-annotate emits plain hex', async () => {
     const r = await run(['toHex', '--no-annotate'], MAP_A1);
     expect(text(r).trim()).toBe('a1616101');
@@ -681,6 +688,68 @@ describe('cbor validate', () => {
       expect(text(r)).toContain('invalid');
       expect(r.stderr).toContain('CDDL parse error');
     });
+  });
+});
+
+describe('--cddl on compile / decompile / format', () => {
+  // {-1: "hi", "p": <<[1, "x"]>>}
+  const TITLED = Buffer.from('a22062686961704482016178', 'hex');
+  let schema: string;
+  beforeAll(async () => {
+    schema = join(dir, 'titled.cddl');
+    await writeFile(
+      schema,
+      'msg = { ? &(title: -1) => tstr, ? p: bstr .cbor inner }\ninner = [uint, tstr]'
+    );
+  });
+
+  test("compile resolves e'...' names defined by the schema", async () => {
+    const r = await run(
+      ['compile', '--cddl', schema],
+      `{e'title': "hi", "p": <<[1, "x"]>>}`
+    );
+    expect(r.code).toBe(0);
+    expect(hex(r)).toBe(TITLED.toString('hex'));
+  });
+
+  test("decompile spells schema-named keys as e'...' and expands .cbor bytes", async () => {
+    const r = await run(
+      ['decompile', '--indent', '0', '--cddl', schema],
+      TITLED
+    );
+    expect(r.code).toBe(0);
+    expect(text(r)).toBe(`{e'title':"hi","p":<<[1,"x"]>>}\n`);
+    const plain = await run(['decompile', '--indent', '0'], TITLED);
+    expect(text(plain)).toBe(`{-1:"hi","p":h'82016178'}\n`);
+  });
+
+  test('--cddl works with implicit decompile', async () => {
+    const file = join(dir, 'titled.cbor');
+    await writeFile(file, TITLED);
+    const r = await run(['--cddl', schema, '-i', '0', file]);
+    expect(r.code).toBe(0);
+    expect(text(r)).toBe(`{e'title':"hi","p":<<[1,"x"]>>}\n`);
+  });
+
+  test("format rewrites schema-named keys as e'...'", async () => {
+    const r = await run(['format', '--cddl', schema], '{-1: "a"}');
+    expect(r.code).toBe(0);
+    expect(text(r)).toBe(`{e'title': "a"}\n`);
+  });
+
+  test('an item that does not match the schema fails', async () => {
+    const r = await run(['compile', '--cddl', schema], '{-1: 5}');
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain('CDDL validation failed');
+  });
+
+  test('--cddl-rule selects the rule to validate against', async () => {
+    const r = await run(
+      ['compile', '--cddl', schema, '--cddl-rule', 'inner'],
+      '[1, "x"]'
+    );
+    expect(r.code).toBe(0);
+    expect(hex(r)).toBe('82016178');
   });
 });
 

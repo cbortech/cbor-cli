@@ -1,8 +1,9 @@
 import { defineCommand } from 'citty';
-import { readFile } from 'node:fs/promises';
 import { createCbor } from '../cbor.js';
 import { readBinaryInput, readTextInput } from '../io.js';
 import {
+  cddlArgs,
+  cddlOptions,
   pick,
   extensionsArg,
   unresolvedArg,
@@ -32,16 +33,7 @@ export default defineCommand({
     },
     ...extensionsArg,
     ...unresolvedArg,
-    cddl: {
-      type: 'string',
-      description:
-        'CDDL schema file to validate each decoded/parsed item against',
-    },
-    'cddl-rule': {
-      type: 'string',
-      description:
-        'CDDL rule to validate against (default: the schema root rule)',
-    },
+    ...cddlArgs,
   },
   async run({ args }) {
     const name = args.input && args.input !== '-' ? args.input : 'stdin';
@@ -52,15 +44,12 @@ export default defineCommand({
         type === 'cbor'
           ? await readBinaryInput(args.input)
           : await readTextInput(args.input);
-      const cddl = args.cddl ? await readFile(args.cddl, 'utf-8') : undefined;
+      const cddl = await cddlOptions(args);
 
       const result = cbor.validate(input, {
         type,
         unresolvedExtension: unresolvedOption(args.unresolved),
-        cddl,
-        cddlValidationOptions: args['cddl-rule']
-          ? { rule: args['cddl-rule'] }
-          : undefined,
+        ...cddl,
       });
 
       for (const hint of result.hints) {

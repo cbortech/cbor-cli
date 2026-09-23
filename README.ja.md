@@ -67,11 +67,13 @@ application extension を選択できます([拡張の選択](#拡張の選択)�
 CDN テキストを CBOR バイナリデータにコンパイルします。複数 item の CDN
 シーケンスは CBOR Sequence (RFC 8742) になります。
 
-| オプション            | 説明                                                                        |
-| --------------------- | --------------------------------------------------------------------------- |
-| `-o, --output <file>` | 出力する CBOR ファイル(デフォルト: stdout)                                  |
-| `--unresolved <mode>` | 未知/無効な app-extension プレフィックスの扱い: `cpa999`(ラップ) \| `error` |
-| `--no-strict`         | CDN validity 違反を警告として報告し、処理を継続する                         |
+| オプション            | 説明                                                                              |
+| --------------------- | --------------------------------------------------------------------------------- |
+| `-o, --output <file>` | 出力する CBOR ファイル(デフォルト: stdout)                                        |
+| `--unresolved <mode>` | 未知/無効な app-extension プレフィックスの扱い: `cpa999`(ラップ) \| `error`       |
+| `--cddl <file>`       | 照合する CDDL スキーマファイル([CDDL スキーマの利用](#cddl-スキーマの利用)を参照) |
+| `--cddl-rule <name>`  | 照合対象とする CDDL ルール(デフォルト: スキーマのルートルール)                    |
+| `--no-strict`         | CDN validity 違反を警告として報告し、処理を継続する                               |
 
 安全のため、`compile`(および `fromHex`)はバイナリデータを端末に直接
 出力しません。`-o` でファイルに書き出すか、パイプで渡してください。
@@ -106,6 +108,8 @@ CBOR バイナリデータを CDN テキストに変換します。CBOR Sequence
 | `--no-preserve-app-prefix`     | app-extension 表記を再生成する(デフォルト: 元の表記を保持する)                                                   |
 | `--modern-concat`              | 保持した `"a" + "b"` 連結(および省略表現)を draft-27 の `t1<<...>>`/`b1<<...>>` 表記で出力する(デフォルト: off)  |
 | `--modern-stream-syntax`       | 不定長文字列を `(_ "a", "b")` の代わりに draft-27 の `ilts<<...>>`/`ilbs<<...>>` 表記で出力する(デフォルト: off) |
+| `--cddl <file>`                | 照合する CDDL スキーマファイル([CDDL スキーマの利用](#cddl-スキーマの利用)を参照)                                |
+| `--cddl-rule <name>`           | 照合対象とする CDDL ルール(デフォルト: スキーマのルートルール)                                                   |
 | `--no-strict`                  | CBOR validity 違反を警告として報告し、処理を継続する                                                             |
 
 `--preserve-app-sequence` / `--no-preserve-app-sequence` は
@@ -123,16 +127,20 @@ CDN シーケンスでは、`--preserve-blank-lines` は単一 item 内のコン
 
 `decompile` のレンダリングオプションに加えて、以下が使用できます:
 
-| オプション               | 説明                                                                        |
-| ------------------------ | --------------------------------------------------------------------------- |
-| `--no-preserve-comments` | 出力からコメントを取り除く                                                  |
-| `--unresolved <mode>`    | 未知/無効な app-extension プレフィックスの扱い: `cpa999`(ラップ) \| `error` |
-| `--no-strict`            | CDN validity 違反を警告として報告し、処理を継続する                         |
+| オプション               | 説明                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `--no-preserve-comments` | 出力からコメントを取り除く                                                        |
+| `--unresolved <mode>`    | 未知/無効な app-extension プレフィックスの扱い: `cpa999`(ラップ) \| `error`       |
+| `--cddl <file>`          | 照合する CDDL スキーマファイル([CDDL スキーマの利用](#cddl-スキーマの利用)を参照) |
+| `--cddl-rule <name>`     | 照合対象とする CDDL ルール(デフォルト: スキーマのルートルール)                    |
+| `--no-strict`            | CDN validity 違反を警告として報告し、処理を継続する                               |
 
 ### `cbor toHex [input]`
 
 CBOR バイナリデータを注釈付き hex dump に変換します(`--no-annotate` で
-プレーンな hex になります)。
+プレーンな hex になります)。RFC 9277 で定義されたタグには、
+`Tag 55799 (self-described CBOR)` や
+`Tag 1668546929 (CoAP Content-Format 112)` のようにラベルが付きます。
 
 | オプション                | 説明                                                 |
 | ------------------------- | ---------------------------------------------------- |
@@ -189,6 +197,30 @@ stdin: cddl violation: value for 'name' does not match at /name (offset 9)
 stdin: invalid (1 item, 1 CDDL violation)
 $ echo $?
 1
+```
+
+### CDDL スキーマの利用
+
+`compile`・`decompile`・`format` でも `--cddl` / `--cddl-rule` を指定
+できます。各アイテムはスキーマに一致する必要があり、一致しない場合は
+CDN 構文エラーと同様にエラーになります。さらに、スキーマは次の用途にも
+使われます:
+
+- `e'name'` 外部参照
+  ([draft-ietf-cbor-edn-e-ref](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-e-ref/))
+  を、スキーマが `&(name: value)` 形式のマップキーで束縛している整数に解決する
+  (実験的サポート。整数リテラルに直接束縛された名前のみ解決します)
+- そのような整数のマップキーを CDN 出力で `e'name'` と表記する
+- `bstr .cbor <type>` と型付けされたバイト列を埋め込み CBOR(`<<...>>`)
+  として出力する
+
+```bash
+$ printf 'msg = { ? &(title: -1) => tstr, ? p: bstr .cbor [uint, tstr] }\n' > msg.cddl
+$ echo "{e'title': \"hi\", \"p\": <<[1, \"x\"]>>}" | cbor compile --cddl msg.cddl -o msg.cbor
+$ cbor decompile --indent 0 msg.cbor
+{-1:"hi","p":h'82016178'}
+$ cbor decompile --indent 0 --cddl msg.cddl msg.cbor
+{e'title':"hi","p":<<[1,"x"]>>}
 ```
 
 ## CDN 拡張
@@ -335,6 +367,7 @@ echo "UUID'019e226f-78d8-7892-8c91-79013e6905e2'" | cbor compile \
 - CDN (CBOR-EDN)
   - [draft-ietf-cbor-edn-literals-25](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/25/)
   - [draft-ietf-cbor-edn-literals-27](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-literals/27/)
+  - [draft-ietf-cbor-edn-e-ref-03](https://datatracker.ietf.org/doc/draft-ietf-cbor-edn-e-ref/03/)
 - CDDL
   - [RFC 8610](https://www.rfc-editor.org/rfc/rfc8610)
   - [RFC 9682](https://www.rfc-editor.org/rfc/rfc9682)
