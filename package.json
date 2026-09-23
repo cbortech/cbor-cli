@@ -1,6 +1,6 @@
 {
   "name": "@cbortech/cbor-cli",
-  "version": "0.27.0",
+  "version": "0.27.2",
   "description": "Command-line tool to convert between CBOR binary data, CDN (Concise Diagnostic Notation) text, and annotated hex dumps",
   "keywords": [
     "cbor",
